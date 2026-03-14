@@ -9,16 +9,34 @@
 
 1. 리포지토리를 포크(Fork)하세요
 2. 로컬에 클론(Clone)하세요
-3. root 레벨 터미널에서 <b>"./start.sh"</b> 입력해 docker compose 실행
-4. 종료 시 root 레벨 터미널에서 <b>"./shutdown.sh"</b> 입력해 docker compose 종료 
-5. 운영 환경 실행 시 Dockerfile에서 CMD ["--spring.profiles.active=prod"]로 수정 
+3. root 레벨 터미널에서 `docker/` 하위 스크립트로 실행할 스택을 선택해 docker compose를 올리세요
+4. 종료 시 동일한 스택 기준으로 docker compose를 내리세요
+5. 운영 환경 실행 시 `docker/Dockerfile`에서 CMD ["--spring.profiles.active=prod"]로 수정 
 6. docker run your-image-name --spring.profiles.active=prod 입력
 
 ### docker compose 실행 법
-root 레벨에서 터미널에 "./start.sh" 입력
+root 레벨에서 아래 명령 중 하나를 사용하세요.
+
+```bash
+./docker/start.sh dev all
+./docker/start.sh dev app
+```
 
 ### docker compose 내리는 법
-root 레벨에서 터미널에 "./shutdown.sh" 입력
+root 레벨에서 아래 명령 중 하나를 사용하세요.
+
+```bash
+./docker/shutdown.sh dev all
+./docker/shutdown.sh dev app
+```
+
+### 아키텍처 의도
+포트폴리오 단계에서는 물리 서버를 처음부터 분리하지 않고, `app stack`과 `observability stack`을 Docker Compose 레벨에서 분리했습니다.
+
+- `app stack`: mysql, redis
+- `observability stack`: elasticsearch, logstash, kibana
+
+운영 환경에서는 ELK를 별도 서버 또는 별도 클러스터로 분리하는 것을 전제로 합니다.
 
 ## ✨ 기여 가능한 항목
 
@@ -177,4 +195,3 @@ public class PostCreateRequest(String title, String content) {...}
 기여 중 문의사항이 있으면 이슈에 자유롭게 남겨주세요!
 
 혹은 이메일: <b>jho951@naver.com</b>
-

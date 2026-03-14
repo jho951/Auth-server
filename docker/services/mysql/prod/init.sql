@@ -1,5 +1,7 @@
--- 특정 사용자에게 최소 권한만 부여 (보안)
-GRANT SELECT ON `prod_db`.* TO 'readonly_user'@'%' IDENTIFIED BY 'strongpassword';
+CREATE DATABASE IF NOT EXISTS prod_db;
+CREATE USER IF NOT EXISTS 'readonly_user'@'%' IDENTIFIED BY 'strongpassword';
+GRANT SELECT ON `prod_db`.* TO 'readonly_user'@'%';
+FLUSH PRIVILEGES;
 
 -- 보안 관련 설정
 SET GLOBAL slow_query_log = 'ON';

@@ -1,2 +1,4 @@
-// 프로젝트 설정파일
 rootProject.name = 'portfolio'
+
+include 'app'
+include 'common'

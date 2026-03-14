@@ -1,9 +1,0 @@
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    try-it-out-enabled: true
-    operations-sorter: alpha
-    doc-expansion: none
-
-kibana:
-  url: ${KIBANA_URL}

@@ -15,6 +15,8 @@ build/
 
 # secret
 .env*
+.envrc
+docker/.generated
 
 # IntelliJ
 .idea
@@ -29,4 +31,3 @@ data/
 # Docs or helpers
 HELP.md
 .gitattributes
-

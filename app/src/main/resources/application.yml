@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: auth-service
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+  config:
+    import:
+      - optional:classpath:${spring.profiles.active}/application-${spring.profiles.active}_auth.yml
+      - optional:classpath:${spring.profiles.active}/application-${spring.profiles.active}_sso.yml
+      - optional:classpath:${spring.profiles.active}/application-${spring.profiles.active}_data.yml
+      - optional:classpath:${spring.profiles.active}/application-${spring.profiles.active}_db.yml
+      - optional:classpath:${spring.profiles.active}/application-${spring.profiles.active}_docs.yml
+      - optional:classpath:${spring.profiles.active}/application-${spring.profiles.active}_server.yml
+  profiles:
+    group:
+      dev: [ "dev_auth", "dev_sso", "dev_data", "dev_db", "dev_docs", "dev_server"]
+      prod: [ "prod_auth", "prod_sso", "prod_data", "prod_db", "prod_docs", "prod_server"]
+    active: ${SPRING_PROFILES_ACTIVE}

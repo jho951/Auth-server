@@ -1,0 +1,20 @@
+sso:
+  state-ttl-seconds: ${SSO_STATE_TTL_SECONDS:300}
+  ticket-ttl-seconds: ${SSO_TICKET_TTL_SECONDS:120}
+  github:
+    client-id: ${SSO_GITHUB_CLIENT_ID:}
+    client-secret: ${SSO_GITHUB_CLIENT_SECRET:}
+    callback-uri: ${SSO_GITHUB_CALLBACK_URI:}
+  frontend:
+    allowed-origins:
+      - ${SSO_FRONTEND_ORIGIN:}
+      - ${SSO_FRONTEND_APP_ORIGIN:}
+    allowed-redirect-uris:
+      - ${SSO_FRONTEND_CALLBACK_URI:}
+  session:
+    cookie-name: ${SSO_SESSION_COOKIE_NAME:sso_session}
+    cookie-secure: ${SSO_SESSION_COOKIE_SECURE:true}
+    cookie-http-only: true
+    cookie-same-site: ${SSO_SESSION_COOKIE_SAME_SITE:None}
+    cookie-path: /
+    ttl-seconds: ${SSO_SESSION_TTL_SECONDS:604800}

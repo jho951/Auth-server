@@ -1,0 +1,14 @@
+auth:
+  endpoints-enabled: false
+  bearer-prefix: "Bearer "
+  refresh-cookie-enabled: true
+  refresh-cookie-name: ${AUTH_REFRESH_COOKIE_NAME:${JWT_COOKIE_NAME:refresh_token}}
+  refresh-cookie-http-only: true
+  refresh-cookie-secure: ${AUTH_REFRESH_COOKIE_SECURE:true}
+  refresh-cookie-path: /
+  refresh-cookie-same-site: Lax
+  auto-security: false
+  jwt:
+    secret: ${AUTH_JWT_SECRET:${JWT_ACCESS_TOKEN_SECRET:}}
+    access-seconds: ${AUTH_ACCESS_EXPIRATION:${JWT_ACCESS_EXPIRATION:1200}}
+    refresh-seconds: ${AUTH_REFRESH_EXPIRATION:${JWT_REFRESH_EXPIRATION:30000}}
