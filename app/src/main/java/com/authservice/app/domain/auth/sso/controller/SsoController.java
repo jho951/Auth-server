@@ -25,30 +25,25 @@ public class SsoController {
 	}
 
 	@GetMapping("/sso/start")
-	public ResponseEntity<Void> start(@RequestParam("redirect_uri") String redirectUri) {
-		return ResponseEntity.status(302)
-			.location(java.net.URI.create(ssoAuthService.buildGithubAuthorizeUrl(redirectUri)))
-			.build();
-	}
-
-	@GetMapping("/github/callback")
-	public ResponseEntity<Void> githubCallback(
-		@RequestParam("code") String code,
-		@RequestParam("state") String state
+	public ResponseEntity<Void> start(
+		@RequestParam(name = "page", required = false) String page,
+		@RequestParam(name = "redirect_uri", required = false) String redirectUri,
+		HttpServletRequest request
 	) {
-		return ResponseEntity.status(302)
-			.location(ssoAuthService.handleGithubCallback(code, state))
-			.build();
+		return ssoAuthService.startGithubLogin(page, redirectUri, request);
 	}
 
 	@PostMapping("/exchange")
-	public ResponseEntity<Void> exchange(@Valid @RequestBody SsoRequest.ExchangeRequest request) {
-		return ssoAuthService.exchangeTicket(request.getTicket());
+	public ResponseEntity<Void> exchange(@Valid @RequestBody SsoRequest.ExchangeRequest request, HttpServletRequest servletRequest) {
+		return ssoAuthService.exchangeTicket(request.getTicket(), servletRequest);
 	}
 
 	@GetMapping("/me")
-	public SsoResponse.MeResponse me(HttpServletRequest request) {
-		SsoPrincipal principal = ssoAuthService.getCurrentUser(request);
+	public SsoResponse.MeResponse me(
+		HttpServletRequest request,
+		@RequestParam(name = "page", required = false) String page
+	) {
+		SsoPrincipal principal = ssoAuthService.getCurrentUser(request, page);
 		return new SsoResponse.MeResponse(
 			principal.getUserId(),
 			principal.getEmail(),

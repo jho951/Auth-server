@@ -3,11 +3,10 @@ package com.authservice.app.domain.auth.entity;
 import java.util.UUID;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-import com.authservice.app.domain.user.entity.User;
+import lombok.Getter;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "auth")
@@ -20,16 +19,19 @@ public class Auth {
 	@Column(name = "id", nullable = false, updatable = false, columnDefinition = "BINARY(16)")
 	private UUID id;
 
-	@OneToOne(optional = false)
-	@JoinColumn(name = "user_id", nullable = false, unique = true)
-	private User user;
+	@Column(name = "user_id", nullable = false, unique = true, columnDefinition = "BINARY(16)")
+	private UUID userId;
+
+	@Column(name = "username", nullable = false, unique = true)
+	private String username;
 
 	@Column(name = "password_hash", nullable = false)
 	private String passwordHash;
 
 	@Builder
-	private Auth(User user, String passwordHash) {
-		this.user = user;
+	private Auth(UUID userId, String username, String passwordHash) {
+		this.userId = userId;
+		this.username = username;
 		this.passwordHash = passwordHash;
 	}
 }

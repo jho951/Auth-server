@@ -1,6 +1,8 @@
 package com.authservice.app.security;
 
 import com.authservice.app.domain.auth.sso.config.SsoProperties;
+import com.authservice.app.domain.auth.sso.service.SsoOAuth2FailureHandler;
+import com.authservice.app.domain.auth.sso.service.SsoOAuth2SuccessHandler;
 import com.auth.config.security.AuthOncePerRequestFilter;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
@@ -23,14 +25,20 @@ public class SecurityConfig {
 	private final RestAuthHandlers.EntryPoint entryPoint;
 	private final RestAuthHandlers.Denied denied;
 	private final SsoProperties ssoProperties;
+	private final SsoOAuth2SuccessHandler ssoOAuth2SuccessHandler;
+	private final SsoOAuth2FailureHandler ssoOAuth2FailureHandler;
 
 	public SecurityConfig(AuthOncePerRequestFilter authFilter,
 		RestAuthHandlers.EntryPoint entryPoint, RestAuthHandlers.Denied denied,
-		SsoProperties ssoProperties) {
+		SsoProperties ssoProperties,
+		SsoOAuth2SuccessHandler ssoOAuth2SuccessHandler,
+		SsoOAuth2FailureHandler ssoOAuth2FailureHandler) {
 		this.authFilter = authFilter;
 		this.entryPoint = entryPoint;
 		this.denied = denied;
 		this.ssoProperties = ssoProperties;
+		this.ssoOAuth2SuccessHandler = ssoOAuth2SuccessHandler;
+		this.ssoOAuth2FailureHandler = ssoOAuth2FailureHandler;
 	}
 
 	@Bean
@@ -38,12 +46,15 @@ public class SecurityConfig {
 		http
 			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 			.csrf(cs -> cs.disable())
-			.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 			.exceptionHandling(e -> e.authenticationEntryPoint(entryPoint).accessDeniedHandler(denied))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(
 					"/api/auth/**",
+					"/internal/auth/**",
 					"/auth/**",
+					"/oauth2/**",
+					"/login/oauth2/**",
 					"/actuator/**",
 					"/v3/api-docs/**",
 					"/swagger-ui/**",
@@ -55,6 +66,10 @@ public class SecurityConfig {
 			.httpBasic(basic -> basic.disable())
 			.formLogin(form -> form.disable())
 			.logout(logout -> logout.disable())
+			.oauth2Login(oauth2 -> oauth2
+				.successHandler(ssoOAuth2SuccessHandler)
+				.failureHandler(ssoOAuth2FailureHandler)
+			)
 			.addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();

@@ -38,6 +38,9 @@ public enum ErrorCode {
 	INVALID_REQUEST_DATA(HttpStatus.BAD_REQUEST, Boolean.FALSE, 9003, "데이터 저장 실패, 재시도 혹은 관리자에게 문의해주세요."),
 
 	NOT_FOUND_USER(HttpStatus.NOT_FOUND, Boolean.FALSE, 9004, "요청하신 유저를 찾을 수 없습니다."),
+	CONFLICT_AUTH_ACCOUNT(HttpStatus.CONFLICT, Boolean.FALSE, 9005, "이미 존재하는 인증 계정입니다."),
+	NOT_FOUND_AUTH_ACCOUNT(HttpStatus.NOT_FOUND, Boolean.FALSE, 9006, "인증 계정을 찾을 수 없습니다."),
+	USER_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, Boolean.FALSE, 9007, "user-service 연동에 실패했습니다."),
 	FAIL(HttpStatus.BAD_REQUEST, Boolean.FALSE, 9999, "요청 응답 실패, 관리자에게 문의해주세요.");
 
 	private final HttpStatus httpStatus;

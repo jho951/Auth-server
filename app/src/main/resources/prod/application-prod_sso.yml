@@ -6,11 +6,19 @@ sso:
     client-secret: ${SSO_GITHUB_CLIENT_SECRET:}
     callback-uri: ${SSO_GITHUB_CALLBACK_URI:}
   frontend:
-    allowed-origins:
-      - ${SSO_FRONTEND_ORIGIN:}
-      - ${SSO_FRONTEND_APP_ORIGIN:}
-    allowed-redirect-uris:
-      - ${SSO_FRONTEND_CALLBACK_URI:}
+    explain:
+      origin: ${SSO_EXPLAIN_ORIGIN:}
+      redirect-uri: ${SSO_EXPLAIN_CALLBACK_URI:}
+    editor:
+      origin: ${SSO_EDITOR_ORIGIN:}
+      redirect-uri: ${SSO_EDITOR_CALLBACK_URI:}
+    admin:
+      origin: ${SSO_ADMIN_ORIGIN:}
+      redirect-uri: ${SSO_ADMIN_CALLBACK_URI:}
+      ip-guard:
+        enabled: ${SSO_ADMIN_IP_GUARD_ENABLED:true}
+        default-allow: ${SSO_ADMIN_IP_GUARD_DEFAULT_ALLOW:false}
+        rules: ${SSO_ADMIN_IP_RULES:}
   session:
     cookie-name: ${SSO_SESSION_COOKIE_NAME:sso_session}
     cookie-secure: ${SSO_SESSION_COOKIE_SECURE:true}

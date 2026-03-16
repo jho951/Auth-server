@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class SsoCookieService {
 
+	private static final String OAUTH_STATE_COOKIE_NAME = "sso_oauth_state";
+
 	private final SsoProperties properties;
 
 	public SsoCookieService(SsoProperties properties) {
@@ -42,6 +44,39 @@ public class SsoCookieService {
 		return ResponseEntity.noContent()
 			.header(HttpHeaders.SET_COOKIE, cookie.toString())
 			.build();
+	}
+
+	public Optional<String> extractOAuthState(HttpServletRequest request) {
+		Cookie[] cookies = request.getCookies();
+		if (cookies == null) {
+			return Optional.empty();
+		}
+		return Arrays.stream(cookies)
+			.filter(cookie -> OAUTH_STATE_COOKIE_NAME.equals(cookie.getName()))
+			.map(Cookie::getValue)
+			.findFirst();
+	}
+
+	public String buildOAuthStateCookie(String state, long maxAgeSeconds) {
+		return ResponseCookie.from(OAUTH_STATE_COOKIE_NAME, state)
+			.httpOnly(true)
+			.secure(properties.getSession().isCookieSecure())
+			.path("/")
+			.sameSite(properties.getSession().getCookieSameSite())
+			.maxAge(maxAgeSeconds)
+			.build()
+			.toString();
+	}
+
+	public String clearOAuthStateCookie() {
+		return ResponseCookie.from(OAUTH_STATE_COOKIE_NAME, "")
+			.httpOnly(true)
+			.secure(properties.getSession().isCookieSecure())
+			.path("/")
+			.sameSite(properties.getSession().getCookieSameSite())
+			.maxAge(0)
+			.build()
+			.toString();
 	}
 
 	public ResponseEntity<Void> clearSessionCookie() {

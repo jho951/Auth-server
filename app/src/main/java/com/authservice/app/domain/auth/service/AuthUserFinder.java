@@ -2,42 +2,33 @@ package com.authservice.app.domain.auth.service;
 
 import com.auth.api.model.User;
 import com.auth.spi.UserFinder;
+import com.authservice.app.domain.auth.userdirectory.service.UserDirectory;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 import com.authservice.app.domain.auth.repository.AuthRepository;
-import com.authservice.app.domain.user.constant.UserRole;
-import com.authservice.app.domain.user.constant.UserStatus;
-import com.authservice.app.domain.user.repository.UserRepository;
 
 @Component
 public class AuthUserFinder implements UserFinder {
 
-	private final UserRepository userRepository;
 	private final AuthRepository authRepository;
+	private final UserDirectory userDirectory;
 
-	public AuthUserFinder(UserRepository userRepository, AuthRepository authRepository) {
-		this.userRepository = userRepository;
+	public AuthUserFinder(AuthRepository authRepository, UserDirectory userDirectory) {
 		this.authRepository = authRepository;
+		this.userDirectory = userDirectory;
 	}
 
 	@Override
 	public Optional<User> findByUsername(String username) {
-		return userRepository.findByEmail(username)
-			.filter(user -> user.getStatus() == UserStatus.ACTIVE)
-			.flatMap(user -> authRepository.findByUserId(user.getId())
-				.map(auth -> new User(
-					String.valueOf(user.getId()),
-					user.getEmail(),
+		return authRepository.findByUsername(username)
+			.flatMap(auth -> userDirectory.findByUserId(auth.getUserId())
+				.filter(user -> "ACTIVE".equalsIgnoreCase(user.status()))
+				.map(user -> new User(
+					String.valueOf(user.userId()),
+					auth.getUsername(),
 					auth.getPasswordHash(),
-					mapRoles(user.getRole())
+					List.of(user.role())
 				)));
-	}
-
-	private List<String> mapRoles(UserRole role) {
-		if (role == null) {
-			return List.of();
-		}
-		return List.of(role.name());
 	}
 }

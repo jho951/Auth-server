@@ -1,11 +1,14 @@
 package com.authservice.app.domain.auth.sso.service;
 
+import com.auth.config.AuthProperties;
 import com.authservice.app.domain.auth.sso.config.SsoProperties;
 import com.authservice.app.domain.auth.sso.model.GithubUserProfile;
+import com.authservice.app.domain.auth.sso.model.SsoPageType;
 import com.authservice.app.domain.auth.sso.model.SsoPrincipal;
 import com.authservice.app.domain.auth.sso.model.SsoStorePayloads.SsoSessionPayload;
 import com.authservice.app.domain.auth.sso.model.SsoStorePayloads.SsoStatePayload;
 import com.authservice.app.domain.auth.sso.model.SsoStorePayloads.SsoTicketPayload;
+import com.authservice.app.domain.auth.sso.model.SsoTargetPage;
 import com.authservice.app.common.base.constant.ErrorCode;
 import com.authservice.app.common.base.exception.GlobalException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,76 +27,61 @@ public class SsoAuthService {
 	private static final Logger log = LoggerFactory.getLogger(SsoAuthService.class);
 
 	private final SsoProperties properties;
+	private final AuthProperties authProperties;
 	private final SsoSessionStore sessionStore;
-	private final GithubOAuthClient githubOAuthClient;
 	private final SsoUserService ssoUserService;
 	private final SsoCookieService cookieService;
+	private final AdminIpGuardService adminIpGuardService;
 
 	public SsoAuthService(
 		SsoProperties properties,
+		AuthProperties authProperties,
 		SsoSessionStore sessionStore,
-		GithubOAuthClient githubOAuthClient,
 		SsoUserService ssoUserService,
-		SsoCookieService cookieService
+		SsoCookieService cookieService,
+		AdminIpGuardService adminIpGuardService
 	) {
 		this.properties = properties;
+		this.authProperties = authProperties;
 		this.sessionStore = sessionStore;
-		this.githubOAuthClient = githubOAuthClient;
 		this.ssoUserService = ssoUserService;
 		this.cookieService = cookieService;
+		this.adminIpGuardService = adminIpGuardService;
 	}
 
-	public String buildGithubAuthorizeUrl(String redirectUri) {
-		validateRedirectUri(redirectUri);
+	public org.springframework.http.ResponseEntity<Void> startGithubLogin(String page, String redirectUri, HttpServletRequest request) {
+		SsoTargetPage targetPage = resolveTargetPage(page, redirectUri);
+		if (targetPage.pageType() == SsoPageType.ADMIN) {
+			adminIpGuardService.validate(request);
+		}
 
 		String state = UUID.randomUUID().toString();
 		Instant expiresAt = Instant.now().plusSeconds(properties.getStateTtlSeconds());
-		sessionStore.saveState(state, new SsoStatePayload(redirectUri, expiresAt), expiresAt);
-
-		return UriComponentsBuilder.fromUriString(properties.getGithub().getAuthorizeUri())
-			.queryParam("client_id", properties.getGithub().getClientId())
-			.queryParam("redirect_uri", properties.getGithub().getCallbackUri())
-			.queryParam("scope", String.join(" ", properties.getGithub().getScopes()))
-			.queryParam("state", state)
-			.build()
-			.encode()
-			.toUriString();
-	}
-
-	public URI handleGithubCallback(String code, String state) {
-		SsoStatePayload statePayload = sessionStore.consumeState(state)
-			.orElseThrow(() -> {
-				log.warn("SSO callback rejected: state not found or expired. state={}", state);
-				return new GlobalException(ErrorCode.INVALID_REQUEST);
-			});
-
-		GithubUserProfile githubUser = githubOAuthClient.fetchUserProfile(code);
-		SsoPrincipal principal = ssoUserService.verifyGithubUser(githubUser);
-
-		String ticket = UUID.randomUUID().toString();
-		Instant expiresAt = Instant.now().plusSeconds(properties.getTicketTtlSeconds());
-		sessionStore.saveTicket(
-			ticket,
-			new SsoTicketPayload(
-				principal.getUserId(),
-				principal.getEmail(),
-				principal.getName(),
-				principal.getAvatarUrl(),
-				principal.getRoles(),
-				expiresAt
-			),
+		sessionStore.saveState(
+			state,
+			new SsoStatePayload(targetPage.redirectUri(), targetPage.pageType().name(), expiresAt),
 			expiresAt
 		);
 
-		return URI.create(UriComponentsBuilder.fromUriString(statePayload.getRedirectUri())
-			.queryParam("ticket", ticket)
-			.build(true)
-			.toUriString());
+		String authorizationUri = UriComponentsBuilder
+			.fromPath(authProperties.getOauth2().getAuthorizationBaseUri())
+			.pathSegment("github")
+			.build()
+			.toUriString();
+
+		return org.springframework.http.ResponseEntity.status(302)
+			.header(org.springframework.http.HttpHeaders.SET_COOKIE, cookieService.buildOAuthStateCookie(state, properties.getStateTtlSeconds()))
+			.location(URI.create(authorizationUri))
+			.build();
 	}
 
-	public org.springframework.http.ResponseEntity<Void> exchangeTicket(String ticket) {
+	public org.springframework.http.ResponseEntity<Void> exchangeTicket(String ticket, HttpServletRequest request) {
 		SsoTicketPayload payload = sessionStore.consumeTicket(ticket)
 			.orElseThrow(() -> new GlobalException(ErrorCode.UNAUTHORIZED));
+
+		if (SsoPageType.from(payload.getPageType()) == SsoPageType.ADMIN) {
+			adminIpGuardService.validate(request);
+		}
 
 		String sessionId = UUID.randomUUID().toString();
 		Instant expiresAt = Instant.now().plusSeconds(properties.getSession().getTtlSeconds());
@@ -113,7 +101,49 @@ public class SsoAuthService {
 		return cookieService.writeSessionCookie(sessionId);
 	}
 
-	public SsoPrincipal getCurrentUser(HttpServletRequest request) {
+	public URI completeOAuthLogin(SsoPrincipal principal, HttpServletRequest request) {
+		SsoStatePayload statePayload = consumeOAuthState(request);
+
+		String ticket = UUID.randomUUID().toString();
+		Instant expiresAt = Instant.now().plusSeconds(properties.getTicketTtlSeconds());
+		sessionStore.saveTicket(
+			ticket,
+			new SsoTicketPayload(
+				principal.getUserId(),
+				principal.getEmail(),
+				principal.getName(),
+				principal.getAvatarUrl(),
+				principal.getRoles(),
+				statePayload.getPageType(),
+				expiresAt
+			),
+			expiresAt
+		);
+
+		return URI.create(UriComponentsBuilder.fromUriString(statePayload.getRedirectUri())
+			.queryParam("ticket", ticket)
+			.build(true)
+			.toUriString());
+	}
+
+	public URI resolveOAuthFailureRedirect(HttpServletRequest request) {
+		try {
+			SsoStatePayload statePayload = consumeOAuthState(request);
+			return URI.create(UriComponentsBuilder.fromUriString(statePayload.getRedirectUri())
+				.queryParam("error", "oauth_failed")
+				.build(true)
+				.toUriString());
+		} catch (GlobalException ex) {
+			log.warn("OAuth failure redirect skipped: state not found");
+			return null;
+		}
+	}
+
+	public SsoPrincipal getCurrentUser(HttpServletRequest request, String page) {
+		if (page != null && !page.isBlank() && SsoPageType.from(page) == SsoPageType.ADMIN) {
+			adminIpGuardService.validate(request);
+		}
+
 		String sessionId = cookieService.extractSessionId(request)
 			.orElseThrow(() -> new GlobalException(ErrorCode.NEED_LOGIN));
 
@@ -134,16 +164,57 @@ public class SsoAuthService {
 		return cookieService.clearSessionCookie();
 	}
 
-	private void validateRedirectUri(String redirectUri) {
-		String normalized = normalizeRedirectUri(redirectUri);
+	private SsoStatePayload consumeOAuthState(HttpServletRequest request) {
+		String state = cookieService.extractOAuthState(request)
+			.orElseThrow(() -> {
+				log.warn("OAuth callback rejected: state cookie missing");
+				return new GlobalException(ErrorCode.INVALID_REQUEST);
+			});
 
-		boolean allowed = properties.getFrontend().getAllowedRedirectUris().stream()
-			.map(this::normalizeRedirectUri)
-			.anyMatch(normalized::equals);
+		return sessionStore.consumeState(state)
+			.orElseThrow(() -> {
+				log.warn("OAuth callback rejected: state not found or expired. state={}", state);
+				return new GlobalException(ErrorCode.INVALID_REQUEST);
+			});
+	}
 
-		if (!allowed) {
+	private SsoTargetPage resolveTargetPage(String page, String redirectUri) {
+		if (page != null && !page.isBlank()) {
+			SsoPageType pageType = SsoPageType.from(page);
+			String configuredRedirectUri = getConfiguredRedirectUri(pageType);
+			if (redirectUri != null && !redirectUri.isBlank()) {
+				validateRedirectUri(redirectUri, configuredRedirectUri);
+			}
+			return new SsoTargetPage(pageType, configuredRedirectUri);
+		}
+
+		if (redirectUri == null || redirectUri.isBlank()) {
 			throw new GlobalException(ErrorCode.INVALID_REQUEST);
 		}
+
+		String normalized = normalizeRedirectUri(redirectUri);
+		for (SsoPageType pageType : SsoPageType.values()) {
+			String configuredRedirectUri = getConfiguredRedirectUri(pageType);
+			if (normalizeRedirectUri(configuredRedirectUri).equals(normalized)) {
+				return new SsoTargetPage(pageType, configuredRedirectUri);
+			}
+		}
+
+		throw new GlobalException(ErrorCode.INVALID_REQUEST);
+	}
+
+	private void validateRedirectUri(String redirectUri, String expectedRedirectUri) {
+		if (!normalizeRedirectUri(redirectUri).equals(normalizeRedirectUri(expectedRedirectUri))) {
+			throw new GlobalException(ErrorCode.INVALID_REQUEST);
+		}
+	}
+
+	private String getConfiguredRedirectUri(SsoPageType pageType) {
+		return switch (pageType) {
+			case EXPLAIN -> properties.getFrontend().getExplain().getRedirectUri();
+			case EDITOR -> properties.getFrontend().getEditor().getRedirectUri();
+			case ADMIN -> properties.getFrontend().getAdmin().getRedirectUri();
+		};
 	}
 
 	private String normalizeRedirectUri(String redirectUri) {

@@ -8,7 +8,23 @@ auth:
   refresh-cookie-path: /
   refresh-cookie-same-site: Lax
   auto-security: false
+  oauth2:
+    enabled: true
+    authorization-base-uri: /oauth2/authorization
+    login-processing-base-uri: /login/oauth2/code/*
   jwt:
     secret: ${AUTH_JWT_SECRET:${JWT_ACCESS_TOKEN_SECRET:}}
     access-seconds: ${AUTH_ACCESS_EXPIRATION:${JWT_ACCESS_EXPIRATION:1200}}
     refresh-seconds: ${AUTH_REFRESH_EXPIRATION:${JWT_REFRESH_EXPIRATION:30000}}
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${SSO_GITHUB_CLIENT_ID:}
+            client-secret: ${SSO_GITHUB_CLIENT_SECRET:}
+            scope:
+              - read:user
+              - user:email

@@ -7,18 +7,24 @@ public class SsoStorePayloads {
 
 	public static class SsoStatePayload {
 		private String redirectUri;
+		private String pageType;
 		private Instant expiresAt;
 
 		public SsoStatePayload() {
 		}
 
-		public SsoStatePayload(String redirectUri, Instant expiresAt) {
+		public SsoStatePayload(String redirectUri, String pageType, Instant expiresAt) {
 			this.redirectUri = redirectUri;
+			this.pageType = pageType;
 			this.expiresAt = expiresAt;
 		}
 
 		public String getRedirectUri() {
 			return redirectUri;
+		}
+
+		public String getPageType() {
+			return pageType;
 		}
 
 		public Instant getExpiresAt() {
@@ -32,17 +38,27 @@ public class SsoStorePayloads {
 		private String name;
 		private String avatarUrl;
 		private List<String> roles;
+		private String pageType;
 		private Instant expiresAt;
 
 		public SsoTicketPayload() {
 		}
 
-		public SsoTicketPayload(String userId, String email, String name, String avatarUrl, List<String> roles, Instant expiresAt) {
+		public SsoTicketPayload(
+			String userId,
+			String email,
+			String name,
+			String avatarUrl,
+			List<String> roles,
+			String pageType,
+			Instant expiresAt
+		) {
 			this.userId = userId;
 			this.email = email;
 			this.name = name;
 			this.avatarUrl = avatarUrl;
 			this.roles = roles;
+			this.pageType = pageType;
 			this.expiresAt = expiresAt;
 		}
 
@@ -64,6 +80,10 @@ public class SsoStorePayloads {
 
 		public List<String> getRoles() {
 			return roles;
+		}
+
+		public String getPageType() {
+			return pageType;
 		}
 
 		public Instant getExpiresAt() {

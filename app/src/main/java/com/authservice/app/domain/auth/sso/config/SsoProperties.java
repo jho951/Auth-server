@@ -1,7 +1,10 @@
 package com.authservice.app.domain.auth.sso.config;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -119,26 +122,107 @@ public class SsoProperties {
 	}
 
 	public static class Frontend {
-		private List<String> allowedOrigins = new ArrayList<>(List.of(
-			"http://localhost:3000",
-			"http://localhost:5173"
-		));
-		private List<String> allowedRedirectUris = new ArrayList<>(List.of("http://localhost:5173/auth/callback"));
+		private final Page explain = new Page();
+		private final Page editor = new Page();
+		private final AdminPage admin = new AdminPage();
+
+		public Frontend() {
+			explain.setOrigin("http://localhost:3000");
+			explain.setRedirectUri("http://localhost:3000/auth/callback");
+			editor.setOrigin("http://localhost:5173");
+			editor.setRedirectUri("http://localhost:5173/auth/callback");
+			admin.setOrigin("http://localhost:5173");
+			admin.setRedirectUri("http://localhost:5173/admin/auth/callback");
+		}
+
+		public Page getExplain() {
+			return explain;
+		}
+
+		public Page getEditor() {
+			return editor;
+		}
+
+		public AdminPage getAdmin() {
+			return admin;
+		}
 
 		public List<String> getAllowedOrigins() {
-			return allowedOrigins;
+			return List.of(explain.getOrigin(), editor.getOrigin(), admin.getOrigin()).stream()
+				.filter(Objects::nonNull)
+				.filter(origin -> !origin.isBlank())
+				.distinct()
+				.toList();
+		}
+	}
+
+	public static class Page {
+		private String origin;
+		private String redirectUri;
+
+		public String getOrigin() {
+			return origin;
 		}
 
-		public void setAllowedOrigins(List<String> allowedOrigins) {
-			this.allowedOrigins = allowedOrigins;
+		public void setOrigin(String origin) {
+			this.origin = origin;
 		}
 
-		public List<String> getAllowedRedirectUris() {
-			return allowedRedirectUris;
+		public String getRedirectUri() {
+			return redirectUri;
 		}
 
-		public void setAllowedRedirectUris(List<String> allowedRedirectUris) {
-			this.allowedRedirectUris = allowedRedirectUris;
+		public void setRedirectUri(String redirectUri) {
+			this.redirectUri = redirectUri;
+		}
+	}
+
+	public static class AdminPage extends Page {
+		private final AdminIpGuard ipGuard = new AdminIpGuard();
+
+		public AdminIpGuard getIpGuard() {
+			return ipGuard;
+		}
+	}
+
+	public static class AdminIpGuard {
+		private boolean enabled = true;
+		private boolean defaultAllow;
+		private String rules = "";
+
+		public boolean isEnabled() {
+			return enabled;
+		}
+
+		public void setEnabled(boolean enabled) {
+			this.enabled = enabled;
+		}
+
+		public boolean isDefaultAllow() {
+			return defaultAllow;
+		}
+
+		public void setDefaultAllow(boolean defaultAllow) {
+			this.defaultAllow = defaultAllow;
+		}
+
+		public String getRules() {
+			return rules;
+		}
+
+		public void setRules(String rules) {
+			this.rules = rules;
+		}
+
+		public List<String> parseRules() {
+			if (rules == null || rules.isBlank()) {
+				return List.of();
+			}
+
+			return Arrays.stream(rules.split("[,\\n]"))
+				.map(String::trim)
+				.filter(value -> !value.isBlank())
+				.collect(Collectors.toList());
 		}
 	}
 
