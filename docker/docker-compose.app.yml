@@ -1,0 +1,47 @@
+services:
+  auth-service:
+    container_name: auth-service
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file:
+      - ${ENV_FILE_PATH}
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      DB_DRIVER: com.mysql.cj.jdbc.Driver
+      MYSQL_URL: jdbc:mysql://mysql:3306/${MYSQL_DB}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: ["--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - external
+
+  mysql:
+    env_file:
+      - ${ENV_FILE_PATH}
+    networks:
+      - external
+
+  redis:
+    env_file:
+      - ${ENV_FILE_PATH}
+    networks:
+      - external
+
+volumes:
+  mysql-volume:
+  redis-data:
+
+networks:
+  external:
+    driver: bridge

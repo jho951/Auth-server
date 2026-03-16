@@ -1,2 +1,4 @@
-// 프로젝트 설정파일
-rootProject.name = 'portfolio'
+rootProject.name = 'Auth-server'
+
+include 'app'
+include 'common'

@@ -1,8 +1,0 @@
-# 로그 레벨 설정 (필요 시 debug로 변경)
-log.level: info
-
-# 파이프라인 자동 감지 (파일 변경 시 재시작 없이 반영)
-config.reload.automatic: true
-
-# 기본 파이프라인 위치
-path.config: /usr/share/logstash/pipeline

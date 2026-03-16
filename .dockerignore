@@ -1,6 +1,8 @@
 # Gradle 캐시 디렉토리
 .gradle
 build
+app/build
+common/build
 
 # IntelliJ IDEA / VSCode 설정
 .idea

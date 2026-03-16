@@ -1,0 +1,28 @@
+sso:
+  state-ttl-seconds: ${SSO_STATE_TTL_SECONDS:300}
+  ticket-ttl-seconds: ${SSO_TICKET_TTL_SECONDS:120}
+  github:
+    client-id: ${SSO_GITHUB_CLIENT_ID:}
+    client-secret: ${SSO_GITHUB_CLIENT_SECRET:}
+    callback-uri: ${SSO_GITHUB_CALLBACK_URI:}
+  frontend:
+    explain:
+      origin: ${SSO_EXPLAIN_ORIGIN:}
+      redirect-uri: ${SSO_EXPLAIN_CALLBACK_URI:}
+    editor:
+      origin: ${SSO_EDITOR_ORIGIN:}
+      redirect-uri: ${SSO_EDITOR_CALLBACK_URI:}
+    admin:
+      origin: ${SSO_ADMIN_ORIGIN:}
+      redirect-uri: ${SSO_ADMIN_CALLBACK_URI:}
+      ip-guard:
+        enabled: ${SSO_ADMIN_IP_GUARD_ENABLED:true}
+        default-allow: ${SSO_ADMIN_IP_GUARD_DEFAULT_ALLOW:false}
+        rules: ${SSO_ADMIN_IP_RULES:}
+  session:
+    cookie-name: ${SSO_SESSION_COOKIE_NAME:sso_session}
+    cookie-secure: ${SSO_SESSION_COOKIE_SECURE:true}
+    cookie-http-only: true
+    cookie-same-site: ${SSO_SESSION_COOKIE_SAME_SITE:None}
+    cookie-path: /
+    ttl-seconds: ${SSO_SESSION_TTL_SECONDS:604800}

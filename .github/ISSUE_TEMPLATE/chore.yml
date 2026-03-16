@@ -1,5 +1,5 @@
 name: Chore
-description: '문서 작업, 설정 수정, 의존성 업데이트 등의 관리 작업'
+description: 문서 작업, 설정 수정, 의존성 업데이트 등의 관리 작업
 title: "[CHORE] 제목을 입력해주세요"
 labels: [CHORE]
 assignees:
