@@ -13,7 +13,6 @@ ENV_FILE="$GENERATED_ENV_DIR/.env.$ENV"
 APP_COMPOSE_FILES=(
   "$SCRIPT_DIR/docker-compose.app.yml"
   "$SCRIPT_DIR/services/mysql/$ENV/docker-compose.mysql.yml"
-  "$SCRIPT_DIR/services/redis/$ENV/docker-compose.redis.yml"
 )
 
 case "$TARGET" in
