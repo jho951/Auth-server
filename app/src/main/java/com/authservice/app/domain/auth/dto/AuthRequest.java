@@ -4,24 +4,10 @@ import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
-/**
- * 요청 DTO들을 클래스 형태로 묶어두는 컨테이너.
- * Jackson 역직렬화를 위해 각 내부 클래스는
- * - 기본 생성자(@NoArgsConstructor)
- * - 게터(@Getter)
- * - 세터(@Setter) 를 가집니다.
- */
+/** 인증 관련 요청 DTO 클래스 */
 public class AuthRequest {
 
-	@Getter
-	@Setter
-	@NoArgsConstructor
-	@AllArgsConstructor
+	/** 로그인 */
 	public static class LoginRequest {
 		@Email
 		@NotBlank
@@ -30,23 +16,60 @@ public class AuthRequest {
 		@NotBlank
 		@Size(min = 8, max = 72)
 		private String password;
+
+		public LoginRequest() {}
+
+		/**
+		 * 생성자
+		 * @param username 아이디
+		 * @param password 비밀번호
+		 */
+		public LoginRequest(String username, String password) {
+			this.username = username;
+			this.password = password;
+		}
+
+		public String getUsername() {return username;}
+		public void setUsername(String username) {this.username = username;}
+		public String getPassword() {return password;}
+		public void setPassword(String password) {this.password = password;}
 	}
 
-	@Getter
-	@Setter
-	@NoArgsConstructor
-	@AllArgsConstructor
+	/** 토큰 갱신 */
 	public static class RefreshRequest {
 		@NotBlank
 		private String refreshToken;
+
+		public RefreshRequest() {}
+
+		/**
+		 * 생성자
+		 * @param refreshToken 토큰 갱신을 위한 refreshToken
+		 */
+		public RefreshRequest(String refreshToken) {
+			this.refreshToken = refreshToken;
+		}
+
+		public String getRefreshToken() {return refreshToken;}
+		public void setRefreshToken(String refreshToken) {this.refreshToken = refreshToken;}
 	}
 
-	@Getter
-	@Setter
-	@NoArgsConstructor
-	@AllArgsConstructor
+	/** 로그아웃 */
 	public static class LogoutRequest {
 		@NotBlank
 		private String refreshToken;
+
+		public LogoutRequest() {}
+
+		/**
+		 * 생성자
+		 * @param refreshToken 토큰 갱신을 위한 refreshToken
+		 */
+		public LogoutRequest(String refreshToken) {
+			this.refreshToken = refreshToken;
+		}
+
+		public String getRefreshToken() {return refreshToken;}
+		public void setRefreshToken(String refreshToken) {this.refreshToken = refreshToken;}
 	}
 }

@@ -9,7 +9,6 @@ import com.authservice.app.domain.auth.dto.AuthRequest;
 import com.authservice.app.domain.auth.dto.AuthResponse;
 import com.authservice.app.domain.auth.entity.Auth;
 import com.authservice.app.domain.auth.service.AuthAccountPolicyService;
-import com.authservice.app.domain.auth.service.AuthAuditService;
 import com.authservice.app.domain.auth.service.AuthLoginAttemptService;
 import com.authservice.app.domain.auth.service.AuthRequestContext;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +20,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 외부 망 또는 Gateway 계층에서 진입하는 인증 요청을 처리하는 컨트롤러입니다.
+ * <p> 일반적인 인증 로직을 외부 클라이언트를 위한 엔드포인트(/auth)로 제공합니다.</p>
+ */
 @RestController
 @RequestMapping("/auth")
 public class AuthGatewayController {
@@ -29,25 +32,37 @@ public class AuthGatewayController {
 	private final RefreshTokenExtractor refreshTokenExtractor;
 	private final RefreshCookieWriter refreshCookieWriter;
 	private final AuthAccountPolicyService authAccountPolicyService;
-	private final AuthAuditService authAuditService;
 	private final AuthLoginAttemptService authLoginAttemptService;
 
+	/**
+	 * 생성자 생성
+	 * @param authService              핵심 인증 및 토큰 발급 서비스
+	 * @param refreshTokenExtractor    요청에서 리프레시 토큰을 추출하는 컴포넌트
+	 * @param refreshCookieWriter      리프레시 토큰을 쿠키에 기록/삭제하는 컴포넌트
+	 * @param authAccountPolicyService 계정 잠금 및 로그인 정책 관리 서비스
+	 * @param authLoginAttemptService  로그인 시도 횟수 및 이력을 기록하는 서비스
+	 */
 	public AuthGatewayController(
 		AuthService authService,
 		RefreshTokenExtractor refreshTokenExtractor,
 		RefreshCookieWriter refreshCookieWriter,
 		AuthAccountPolicyService authAccountPolicyService,
-		AuthAuditService authAuditService,
 		AuthLoginAttemptService authLoginAttemptService
 	) {
 		this.authService = authService;
 		this.refreshTokenExtractor = refreshTokenExtractor;
 		this.refreshCookieWriter = refreshCookieWriter;
 		this.authAccountPolicyService = authAccountPolicyService;
-		this.authAuditService = authAuditService;
 		this.authLoginAttemptService = authLoginAttemptService;
 	}
 
+	/**
+	 * Gateway를 통한 로그인 요청을 처리합니다.
+	 * @param req     로그인 요청 정보 (username, password)
+	 * @param request 클라이언트 IP 및 컨텍스트 정보를 담은 객체
+	 * @return 액세스 토큰 및 리프레시 토큰 응답
+	 * @throws RuntimeException 인증 실패 시 발생
+	 */
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse.TokenResponse> login(@Valid @RequestBody AuthRequest.LoginRequest req, HttpServletRequest request) {
 		AuthRequestContext context = AuthRequestContext.from(request);
@@ -55,7 +70,7 @@ public class AuthGatewayController {
 			Tokens tokens = authService.login(req.getUsername(), req.getPassword());
 			Optional<Auth> auth = authAccountPolicyService.markLoginSuccess(req.getUsername());
 			authLoginAttemptService.record(req.getUsername(), context, "SUCCESS");
-			auth.ifPresent(value -> authAuditService.log("LOGIN_SUCCESS", "SUCCESS", value, context, "{\"channel\":\"gateway\"}"));
+
 			ResponseEntity<LoginResponse> response = refreshCookieWriter.write(
 				tokens,
 				ResponseEntity.ok(new LoginResponse(tokens.getAccessToken()))
@@ -66,16 +81,21 @@ public class AuthGatewayController {
 		} catch (RuntimeException ex) {
 			Optional<Auth> auth = authAccountPolicyService.markLoginFailure(req.getUsername());
 			authLoginAttemptService.record(req.getUsername(), context, "FAILURE");
-			auth.ifPresent(value -> authAuditService.log("LOGIN_FAILURE", "FAILURE", value, context, "{\"channel\":\"gateway\"}"));
 			throw ex;
 		}
 	}
 
+	/**
+	 * Gateway를 통한 토큰 갱신 요청을 처리합니다.
+	 *
+	 * @param request 리프레시 토큰 추출을 위한 객체
+	 * @return 갱신된 토큰 세트
+	 */
 	@PostMapping("/refresh")
 	public ResponseEntity<AuthResponse.TokenResponse> refresh(HttpServletRequest request) {
 		String refreshToken = refreshTokenExtractor.extract(request);
 		Tokens tokens = authService.refresh(refreshToken);
-		authAuditService.log("TOKEN_REFRESH", "SUCCESS", (Auth) null, AuthRequestContext.from(request), "{\"channel\":\"gateway\"}");
+
 		ResponseEntity<LoginResponse> response = refreshCookieWriter.write(
 			tokens,
 			ResponseEntity.ok(new LoginResponse(tokens.getAccessToken()))

@@ -43,19 +43,22 @@ public final class GlobalResponse<T> {
 		}
 		return new GlobalResponse<>(
 			successCode.getHttpStatus(),
-			successCode.isSuccess(),
+			true,
 			successCode.getMessage(),
 			successCode.getCode(),
 			data
 		);
 	}
 
-	public static GlobalResponse<Void> ok() {
+	public static GlobalResponse<Void> ok(SuccessCode successCode) {
+		if (successCode == null) {
+			throw new IllegalArgumentException("HTTP 상태와 메시지는 null일 수 없습니다.");
+		}
 		return new GlobalResponse<>(
-			SuccessCode.SUCCESS.getHttpStatus(),
-			SuccessCode.SUCCESS.isSuccess(),
-			SuccessCode.SUCCESS.getMessage(),
-			SuccessCode.SUCCESS.getCode(),
+			successCode.getHttpStatus(),
+			true,
+			successCode.getMessage(),
+			successCode.getCode(),
 			null
 		);
 	}
@@ -66,7 +69,7 @@ public final class GlobalResponse<T> {
 		}
 		return new GlobalResponse<>(
 			errorCode.getHttpStatus(),
-			errorCode.isSuccess(),
+			false,
 			errorCode.getMessage(),
 			errorCode.getCode(),
 			null

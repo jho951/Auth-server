@@ -8,6 +8,7 @@ import com.ipguard.spi.RuleSource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,12 +17,18 @@ public class AdminIpGuardService {
 	private static final Logger log = LoggerFactory.getLogger(AdminIpGuardService.class);
 
 	private final SsoProperties ssoProperties;
+	private final Environment environment;
 
-	public AdminIpGuardService(SsoProperties ssoProperties) {
+	public AdminIpGuardService(SsoProperties ssoProperties, Environment environment) {
 		this.ssoProperties = ssoProperties;
+		this.environment = environment;
 	}
 
 	public void validate(HttpServletRequest request) {
+		if (environment.matchesProfiles("dev")) {
+			return;
+		}
+
 		SsoProperties.AdminIpGuard properties = ssoProperties.getFrontend().getAdmin().getIpGuard();
 		if (!properties.isEnabled()) {
 			return;

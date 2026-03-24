@@ -31,9 +31,6 @@ public class Auth {
 	@Column(name = "login_id", nullable = false, unique = true)
 	private String loginId;
 
-	@Column(name = "email", nullable = false)
-	private String email;
-
 	@Column(name = "password_hash", nullable = false)
 	private String passwordHash;
 
@@ -56,10 +53,9 @@ public class Auth {
 	private LocalDateTime updatedAt;
 
 	@Builder
-	private Auth(UUID userId, String loginId, String email, String passwordHash) {
+	private Auth(UUID userId, String loginId, String passwordHash) {
 		this.userId = userId;
 		this.loginId = loginId;
-		this.email = email;
 		this.passwordHash = passwordHash;
 		this.accountLocked = false;
 		this.failedLoginCount = 0;

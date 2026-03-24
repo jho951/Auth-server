@@ -24,8 +24,8 @@ public class InternalAuthRequest {
 
 		@Email
 		@NotBlank
-		@Schema(description = "로그인 아이디로 사용할 이메일")
-		private String email;
+		@Schema(description = "로그인 아이디")
+		private String loginId;
 
 		@NotBlank
 		@Size(min = 8, max = 72)

@@ -16,9 +16,9 @@ sso:
       origin: ${SSO_ADMIN_ORIGIN:http://localhost:5173}
       redirect-uri: ${SSO_ADMIN_CALLBACK_URI:http://localhost:5173/admin/auth/callback}
       ip-guard:
-        enabled: ${SSO_ADMIN_IP_GUARD_ENABLED:true}
+        enabled: false
         default-allow: ${SSO_ADMIN_IP_GUARD_DEFAULT_ALLOW:false}
-        rules: ${SSO_ADMIN_IP_RULES:127.0.0.1,::1}
+        rules: ${SSO_ADMIN_IP_RULES:127.0.0.1,::1,192.168.65.1,172.17.0.1,172.16.0.0/12}
   session:
     cookie-name: ${SSO_SESSION_COOKIE_NAME:sso_session}
     cookie-secure: ${SSO_SESSION_COOKIE_SECURE:false}

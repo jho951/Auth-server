@@ -1,12 +1,12 @@
 services:
-  mysql:
-    container_name: mysql
+  auth-mysql:
+    container_name: auth-mysql
     image: mysql:8.0
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - type: volume
-        source: mysql-volume
+        source: auth-mysql-volume
         target: /var/lib/mysql
       - type: bind
         source: services/mysql/dev/my.cnf

@@ -9,8 +9,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       DB_DRIVER: com.mysql.cj.jdbc.Driver
-      MYSQL_URL: jdbc:mysql://mysql:3306/${MYSQL_DB}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
-      MYSQL_HOST: mysql
+      MYSQL_URL: jdbc:mysql://auth-mysql:3306/${MYSQL_DB}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      MYSQL_HOST: auth-mysql
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       REDIS_HOST: ${REDIS_HOST}
@@ -22,20 +22,20 @@ services:
     ports:
       - "${SERVER_PORT:-8081}:${SERVER_PORT:-8081}"
     depends_on:
-      mysql:
+      auth-mysql:
         condition: service_healthy
     networks:
       - app-internal
       - redis-core
 
-  mysql:
+  auth-mysql:
     env_file:
       - ${ENV_FILE_PATH}
     networks:
       - app-internal
 
 volumes:
-  mysql-volume:
+  auth-mysql-volume:
 
 networks:
   app-internal:

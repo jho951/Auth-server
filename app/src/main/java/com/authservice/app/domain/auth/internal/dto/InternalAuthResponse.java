@@ -21,13 +21,13 @@ public class InternalAuthResponse {
 		private UUID userId;
 
 		@Schema(description = "로그인 아이디")
-		private String username;
+		private String loginId;
 
-		public static AccountResponse from(UUID authId, UUID userId, String username) {
+		public static AccountResponse from(UUID authId, UUID userId, String loginId) {
 			return AccountResponse.builder()
 				.authId(authId)
 				.userId(userId)
-				.username(username)
+				.loginId(loginId)
 				.build();
 		}
 	}

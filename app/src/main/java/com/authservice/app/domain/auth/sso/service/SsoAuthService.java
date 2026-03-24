@@ -11,8 +11,6 @@ import com.authservice.app.domain.auth.sso.model.SsoStorePayloads.SsoTicketPaylo
 import com.authservice.app.domain.auth.sso.model.SsoTargetPage;
 import com.authservice.app.common.base.constant.ErrorCode;
 import com.authservice.app.common.base.exception.GlobalException;
-import com.authservice.app.domain.auth.service.AuthAuditService;
-import com.authservice.app.domain.auth.service.AuthRequestContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.time.Instant;
@@ -34,7 +32,6 @@ public class SsoAuthService {
 	private final SsoUserService ssoUserService;
 	private final SsoCookieService cookieService;
 	private final AdminIpGuardService adminIpGuardService;
-	private final AuthAuditService authAuditService;
 
 	public SsoAuthService(
 		SsoProperties properties,
@@ -42,8 +39,7 @@ public class SsoAuthService {
 		SsoSessionStore sessionStore,
 		SsoUserService ssoUserService,
 		SsoCookieService cookieService,
-		AdminIpGuardService adminIpGuardService,
-		AuthAuditService authAuditService
+		AdminIpGuardService adminIpGuardService
 	) {
 		this.properties = properties;
 		this.authProperties = authProperties;
@@ -51,7 +47,6 @@ public class SsoAuthService {
 		this.ssoUserService = ssoUserService;
 		this.cookieService = cookieService;
 		this.adminIpGuardService = adminIpGuardService;
-		this.authAuditService = authAuditService;
 	}
 
 	public org.springframework.http.ResponseEntity<Void> startGithubLogin(String page, String redirectUri, HttpServletRequest request) {
@@ -114,7 +109,6 @@ public class SsoAuthService {
 			),
 			expiresAt
 		);
-		authAuditService.log("SSO_LOGIN_SUCCESS", "SUCCESS", UUID.fromString(payload.getUserId()), AuthRequestContext.from(request), null);
 
 		return cookieService.writeSessionCookie(sessionId);
 	}
@@ -159,7 +153,6 @@ public class SsoAuthService {
 			),
 			expiresAt
 		);
-		authAuditService.log("SSO_TICKET_ISSUED", "SUCCESS", UUID.fromString(principal.getUserId()), AuthRequestContext.from(request), null);
 
 		return URI.create(UriComponentsBuilder.fromUriString(statePayload.getRedirectUri())
 			.queryParam("ticket", ticket)
@@ -202,9 +195,6 @@ public class SsoAuthService {
 
 	public org.springframework.http.ResponseEntity<Void> logout(HttpServletRequest request) {
 		cookieService.extractSessionId(request).ifPresent(sessionId -> {
-			sessionStore.findSession(sessionId).ifPresent(payload ->
-				authAuditService.log("SSO_LOGOUT", "SUCCESS", UUID.fromString(payload.getUserId()), AuthRequestContext.from(request), null)
-			);
 			sessionStore.revokeSession(sessionId);
 		});
 		return cookieService.clearSessionCookie();

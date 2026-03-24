@@ -36,7 +36,7 @@ public class InternalAuthController {
 	) {
 		internalApiProperties.validateAuthorizationHeader(authorization);
 		return GlobalResponse.ok(
-			SuccessCode.SUCCESS,
+			SuccessCode.CREATE_SUCCESS,
 			internalAuthAccountService.createAccount(request)
 		);
 	}
@@ -48,6 +48,6 @@ public class InternalAuthController {
 	) {
 		internalApiProperties.validateAuthorizationHeader(authorization);
 		internalAuthAccountService.deleteAccount(userId);
-		return GlobalResponse.ok();
+		return GlobalResponse.ok(SuccessCode.DELETE_SUCCESS);
 	}
 }
