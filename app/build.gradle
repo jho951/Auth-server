@@ -27,12 +27,14 @@ dependencies {
     implementation libs.auth.spring
     implementation libs.auth.jwt.starter
     implementation libs.auth.hybrid.starter
+    implementation libs.auth.session
     implementation libs.ip.guard.starter
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
     testImplementation libs.junit.jupiter
+    testImplementation libs.auth.starter
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
 }

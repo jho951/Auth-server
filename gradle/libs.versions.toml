@@ -3,6 +3,7 @@ spring-boot = "3.4.0"
 spring-dependency-management = "1.1.6"
 springdoc = "2.5.0"
 auth-library = "2.0.5"
+auth-starter = "1.1.4"
 ip-guard = "2.0.5"
 junit-jupiter = "5.11.3"
 
@@ -18,6 +19,8 @@ auth-core = { module = "io.github.jho951:auth-core", version.ref = "auth-library
 auth-spring = { module = "io.github.jho951:auth-spring", version.ref = "auth-library" }
 auth-jwt-starter = { module = "io.github.jho951:auth-jwt-spring-boot-starter", version.ref = "auth-library" }
 auth-hybrid-starter = { module = "io.github.jho951:auth-hybrid-spring-boot-starter", version.ref = "auth-library" }
+auth-session = { module = "io.github.jho951:auth-session", version.ref = "auth-library" }
+auth-starter = { module = "io.github.jho951:auth-starter", version.ref = "auth-starter" }
 ip-guard-starter = { module = "io.github.jho951:ip-guard-spring-boot-starter", version.ref = "ip-guard" }
 
 [plugins]
