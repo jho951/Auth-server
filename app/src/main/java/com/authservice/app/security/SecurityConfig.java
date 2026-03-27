@@ -3,7 +3,6 @@ package com.authservice.app.security;
 import com.authservice.app.domain.auth.sso.config.SsoProperties;
 import com.authservice.app.domain.auth.sso.service.SsoOAuth2FailureHandler;
 import com.authservice.app.domain.auth.sso.service.SsoOAuth2SuccessHandler;
-import com.auth.config.AuthProperties;
 import com.auth.config.security.AuthOncePerRequestFilter;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
@@ -26,21 +25,18 @@ public class SecurityConfig {
 	private final AuthOncePerRequestFilter authFilter;
 	private final RestAuthHandlers.EntryPoint entryPoint;
 	private final RestAuthHandlers.Denied denied;
-	private final AuthProperties authProperties;
 	private final SsoProperties ssoProperties;
 	private final SsoOAuth2SuccessHandler ssoOAuth2SuccessHandler;
 	private final SsoOAuth2FailureHandler ssoOAuth2FailureHandler;
 
 	public SecurityConfig(AuthOncePerRequestFilter authFilter,
 		RestAuthHandlers.EntryPoint entryPoint, RestAuthHandlers.Denied denied,
-		AuthProperties authProperties,
 		SsoProperties ssoProperties,
 		SsoOAuth2SuccessHandler ssoOAuth2SuccessHandler,
 		SsoOAuth2FailureHandler ssoOAuth2FailureHandler) {
 		this.authFilter = authFilter;
 		this.entryPoint = entryPoint;
 		this.denied = denied;
-		this.authProperties = authProperties;
 		this.ssoProperties = ssoProperties;
 		this.ssoOAuth2SuccessHandler = ssoOAuth2SuccessHandler;
 		this.ssoOAuth2FailureHandler = ssoOAuth2FailureHandler;
@@ -57,8 +53,10 @@ public class SecurityConfig {
 			))
 			.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 			.exceptionHandling(e -> e.authenticationEntryPoint(entryPoint).accessDeniedHandler(denied))
-			.authorizeHttpRequests(auth -> auth
-				.requestMatchers(
+				.authorizeHttpRequests(auth -> auth
+					.requestMatchers(
+					"/.well-known/**",
+					"/v1/.well-known/**",
 					"/internal/auth/**",
 					"/auth/**",
 					"/oauth2/**",
@@ -78,10 +76,10 @@ public class SecurityConfig {
 			.logout(logout -> logout.disable())
 			.oauth2Login(oauth2 -> oauth2
 				.authorizationEndpoint(authorization -> authorization
-					.baseUri(authProperties.getOauth2().getAuthorizationBaseUri())
+					.baseUri("/oauth2/authorization")
 				)
 				.redirectionEndpoint(redirection -> redirection
-					.baseUri(authProperties.getOauth2().getLoginProcessingBaseUri())
+					.baseUri("/login/oauth2/code/*")
 				)
 				.successHandler(ssoOAuth2SuccessHandler)
 				.failureHandler(ssoOAuth2FailureHandler)

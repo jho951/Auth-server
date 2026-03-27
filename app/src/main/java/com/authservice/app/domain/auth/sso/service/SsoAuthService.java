@@ -12,9 +12,11 @@ import com.authservice.app.domain.auth.sso.model.SsoTargetPage;
 import com.authservice.app.common.base.constant.ErrorCode;
 import com.authservice.app.common.base.exception.GlobalException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class SsoAuthService {
 
 	private static final Logger log = LoggerFactory.getLogger(SsoAuthService.class);
+	private static final String OAUTH_STATE_SESSION_KEY = "sso_oauth_state";
 
 	private final SsoProperties properties;
 	private final AuthProperties authProperties;
@@ -62,6 +65,7 @@ public class SsoAuthService {
 			new SsoStatePayload(targetPage.redirectUri(), targetPage.pageType().name(), expiresAt),
 			expiresAt
 		);
+		request.getSession(true).setAttribute(OAUTH_STATE_SESSION_KEY, state);
 
 		String authorizationUri = UriComponentsBuilder
 			.fromPath(authProperties.getOauth2().getAuthorizationBaseUri())
@@ -202,8 +206,9 @@ public class SsoAuthService {
 
 	private SsoStatePayload consumeOAuthState(HttpServletRequest request) {
 		String state = cookieService.extractOAuthState(request)
+			.or(() -> extractOAuthStateFromSession(request))
 			.orElseThrow(() -> {
-				log.warn("OAuth callback rejected: state cookie missing");
+				log.warn("OAuth callback rejected: state cookie/session missing");
 				return new GlobalException(ErrorCode.INVALID_REQUEST);
 			});
 
@@ -212,6 +217,19 @@ public class SsoAuthService {
 				log.warn("OAuth callback rejected: state not found or expired. state={}", state);
 				return new GlobalException(ErrorCode.INVALID_REQUEST);
 			});
+	}
+
+	private Optional<String> extractOAuthStateFromSession(HttpServletRequest request) {
+		HttpSession session = request.getSession(false);
+		if (session == null) {
+			return Optional.empty();
+		}
+		Object value = session.getAttribute(OAUTH_STATE_SESSION_KEY);
+		if (value instanceof String sessionState && !sessionState.isBlank()) {
+			session.removeAttribute(OAUTH_STATE_SESSION_KEY);
+			return Optional.of(sessionState);
+		}
+		return Optional.empty();
 	}
 
 	private SsoTargetPage resolveTargetPage(String page, String redirectUri) {
