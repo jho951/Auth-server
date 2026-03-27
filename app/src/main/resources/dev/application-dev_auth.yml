@@ -11,8 +11,8 @@ auth:
   auto-security: false
   oauth2:
     enabled: false
-    authorization-base-uri: /oauth2/authorization
-    login-processing-base-uri: /login/oauth2/code/*
+    authorization-base-uri: /v1/oauth2/authorization
+    login-processing-base-uri: /v1/login/oauth2/code/*
   jwt:
     secret: ${AUTH_JWT_SECRET:${JWT_ACCESS_TOKEN_SECRET:local-dev-auth-secret-local-dev-auth-secret}}
     access-seconds: ${AUTH_ACCESS_EXPIRATION:${JWT_ACCESS_EXPIRATION:1200}}
@@ -26,7 +26,7 @@ spring:
           github:
             client-id: ${SSO_GITHUB_CLIENT_ID:}
             client-secret: ${SSO_GITHUB_CLIENT_SECRET:}
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: "{baseUrl}/v1/login/oauth2/code/{registrationId}"
             scope:
               - read:user
               - user:email
