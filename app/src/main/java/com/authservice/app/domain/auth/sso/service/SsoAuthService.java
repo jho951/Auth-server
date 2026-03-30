@@ -84,12 +84,13 @@ public class SsoAuthService {
 
 		String state = UUID.randomUUID().toString();
 		Instant expiresAt = Instant.now().plusSeconds(properties.getStateTtlSeconds());
+		SsoStatePayload statePayload = new SsoStatePayload(targetPage.redirectUri(), targetPage.pageType().name(), expiresAt);
 		sessionStore.saveState(
 			state,
-			new SsoStatePayload(targetPage.redirectUri(), targetPage.pageType().name(), expiresAt),
+			statePayload,
 			expiresAt
 		);
-		request.getSession(true).setAttribute(OAUTH_STATE_SESSION_KEY, state);
+		request.getSession(true).setAttribute(OAUTH_STATE_SESSION_KEY, statePayload);
 
 		String authorizationUri = UriComponentsBuilder
 			.fromPath(authProperties.getOauth2().getAuthorizationBaseUri())
@@ -282,9 +283,13 @@ public class SsoAuthService {
 	}
 
 	private SsoStatePayload consumeOAuthState(HttpServletRequest request) {
+		Optional<SsoStatePayload> sessionPayload = extractOAuthStatePayloadFromSession(request);
+		if (sessionPayload.isPresent()) {
+			return sessionPayload.get();
+		}
+
 		List<String> candidates = new ArrayList<>();
 		cookieService.extractOAuthState(request).ifPresent(candidates::add);
-		extractOAuthStateFromSession(request).ifPresent(candidates::add);
 		extractOAuthStateFromRequest(request).ifPresent(candidates::add);
 
 		if (candidates.isEmpty()) {
@@ -311,15 +316,15 @@ public class SsoAuthService {
 		return Optional.of(state);
 	}
 
-	private Optional<String> extractOAuthStateFromSession(HttpServletRequest request) {
+	private Optional<SsoStatePayload> extractOAuthStatePayloadFromSession(HttpServletRequest request) {
 		HttpSession session = request.getSession(false);
 		if (session == null) {
 			return Optional.empty();
 		}
 		Object value = session.getAttribute(OAUTH_STATE_SESSION_KEY);
-		if (value instanceof String sessionState && !sessionState.isBlank()) {
+		if (value instanceof SsoStatePayload sessionStatePayload) {
 			session.removeAttribute(OAUTH_STATE_SESSION_KEY);
-			return Optional.of(sessionState);
+			return Optional.of(sessionStatePayload);
 		}
 		return Optional.empty();
 	}
