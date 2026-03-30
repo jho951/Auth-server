@@ -23,9 +23,9 @@
   - `common`: 공통 설정/응답/로깅 모듈
 - Docker 네트워크 구조
   - `SERVICE_SHARED_NETWORK`(external): gateway/auth/user-service 간 서비스 통신용 공유 네트워크
-    - 기본값: `msa-service-shared`
+    - 기본값: `service-backbone-shared`
   - `auth-private`(internal): auth-service와 auth-mysql 전용 private 네트워크
-  - `redis-core`(external): 중앙 Redis 네트워크
+  - `service-backbone-shared`(external): 중앙 Redis 및 서비스 간 공유 네트워크
 
 ## 실행 가이드
 
