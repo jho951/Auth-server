@@ -106,7 +106,9 @@ export REDIS_SSL=false
 - 감사 로그 테이블 `auth_audit_logs` 는 제거되었고 현재 코드에서 사용하지 않습니다.
 - `dev` 프로필은 JPA `ddl-auto: create` 로 애플리케이션 시작 시 스키마를 생성합니다.
 - `prod` 프로필은 JPA `ddl-auto: none` 이므로 스키마를 사전에 준비해야 합니다.
-- 운영 DB 수동 마이그레이션 예시는 `db/migrations/2026-03-27_drop_auth_social_accounts.sql` 및 `scripts/db/apply-drop-auth-social-accounts-prod.sh`를 참고하면 됩니다.
+- UUID 식별자는 코드와 DB 모두 `CHAR(36)` 바인딩을 사용합니다.
+- 운영 DB가 이전 `BINARY(16)` 스키마라면 `db/migrations/2026-03-31_bind_uuid_columns_char36.sql` 및 `scripts/db/apply-bind-uuid-char36-prod.sh`를 먼저 적용해야 합니다.
+- 과거 소셜 계정 제거용 마이그레이션이 필요하면 `db/migrations/2026-03-27_drop_auth_social_accounts.sql` 및 `scripts/db/apply-drop-auth-social-accounts-prod.sh`를 참고하면 됩니다.
 
 ## Notes
 
