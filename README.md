@@ -30,6 +30,13 @@
 ./scripts/run.docker.sh
 ```
 
+`./scripts/run.docker.sh`는 `.env.dev`/`.env.prod`가 없어도 로컬 기본값으로 실행됩니다.
+운영처럼 강제 검증이 필요하면 `--strict` 옵션을 사용합니다.
+
+```bash
+./scripts/run.docker.sh up dev app --strict
+```
+
 ### 스택별 실행
 ```bash
 ./scripts/run.docker.sh up dev app

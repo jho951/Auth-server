@@ -8,7 +8,10 @@ DOCKER_DIR="$PROJECT_ROOT/docker"
 ACTION=${1:-up}
 ENV=${2:-dev}
 TARGET=${3:-all}
+STRICT_MODE=${4:-}
 SOURCE_ENV_FILE="$PROJECT_ROOT/.env.$ENV"
+EFFECTIVE_ENV_FILE="$SOURCE_ENV_FILE"
+TEMP_ENV_FILE=""
 MSA_SHARED_NETWORK="${MSA_SHARED_NETWORK:-msa-shared}"
 
 APP_COMPOSE_FILES=(
@@ -39,9 +42,59 @@ esac
 
 [[ -n "${ES_COMPOSE:-}" ]] && COMPOSE_FILES+=("$ES_COMPOSE")
 
-if [[ ! -f "$SOURCE_ENV_FILE" ]]; then
-  echo "Source env file not found: $SOURCE_ENV_FILE"
+if [[ -n "$STRICT_MODE" && "$STRICT_MODE" != "--strict" ]]; then
+  echo "Invalid option: $STRICT_MODE"
+  echo "Usage: ./scripts/run.docker.sh [up|down] [dev|prod] [all|app] [--strict]"
   exit 1
+fi
+
+cleanup() {
+  if [[ -n "$TEMP_ENV_FILE" && -f "$TEMP_ENV_FILE" ]]; then
+    rm -f "$TEMP_ENV_FILE"
+  fi
+}
+trap cleanup EXIT
+
+write_fallback_env() {
+  local env_file="$1"
+  local profile="$2"
+  cat > "$env_file" <<ENVEOF
+SPRING_PROFILES_ACTIVE=$profile
+MYSQL_DB=auth_service
+MYSQL_USER=auth_service
+MYSQL_PASSWORD=auth_service
+MYSQL_ROOT_PASSWORD=root
+MYSQL_HOST=auth-mysql
+MYSQL_URL=jdbc:mysql://auth-mysql:3306/auth_service?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+REDIS_HOST=redis-server
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_SSL=false
+SERVER_PORT=8081
+INTERNAL_API_KEY=local-internal-api-key
+USER_SERVICE_BASE_URL=http://user-service:8082
+USER_SERVICE_INTERNAL_API_KEY=local-internal-api-key
+USER_SERVICE_JWT_ISSUER=auth-service
+USER_SERVICE_JWT_AUDIENCE=user-service
+USER_SERVICE_JWT_SUBJECT=auth-service
+USER_SERVICE_JWT_SCOPE=internal
+USER_SERVICE_JWT_TTL_SECONDS=60
+AUTH_JWT_SECRET=local-dev-auth-secret-local-dev-auth-secret
+JWT_ACCESS_TOKEN_SECRET=local-dev-auth-secret-local-dev-auth-secret
+AUTH_ACCESS_EXPIRATION=1200
+AUTH_REFRESH_EXPIRATION=30000
+ENVEOF
+}
+
+if [[ ! -f "$SOURCE_ENV_FILE" ]]; then
+  if [[ "$STRICT_MODE" == "--strict" ]]; then
+    echo "Source env file not found: $SOURCE_ENV_FILE"
+    exit 1
+  fi
+  TEMP_ENV_FILE="$(mktemp "${TMPDIR:-/tmp}/auth-server-${ENV}.env.XXXXXX")"
+  write_fallback_env "$TEMP_ENV_FILE" "$ENV"
+  EFFECTIVE_ENV_FILE="$TEMP_ENV_FILE"
+  echo "[WARN] $SOURCE_ENV_FILE not found. Using generated fallback env: $EFFECTIVE_ENV_FILE"
 fi
 
 docker network inspect "$MSA_SHARED_NETWORK" >/dev/null 2>&1 || docker network create "$MSA_SHARED_NETWORK" >/dev/null
@@ -67,7 +120,7 @@ fi
 echo "Environment: $ENV"
 echo "Target: $TARGET"
 echo "Action: $ACTION"
-echo "Using source env file: $SOURCE_ENV_FILE"
+echo "Using env file: $EFFECTIVE_ENV_FILE"
 echo "Using Docker Compose files:"
 for f in "${COMPOSE_FILES[@]}"; do
   echo "  $f"
@@ -79,9 +132,9 @@ for f in "${COMPOSE_FILES[@]}"; do
 done
 
 if [[ "$ACTION" == "up" ]]; then
-  ENV_FILE_PATH="$SOURCE_ENV_FILE" MSA_SHARED_NETWORK="$MSA_SHARED_NETWORK" docker compose --env-file "$SOURCE_ENV_FILE" \
+  ENV_FILE_PATH="$EFFECTIVE_ENV_FILE" MSA_SHARED_NETWORK="$MSA_SHARED_NETWORK" docker compose --env-file "$EFFECTIVE_ENV_FILE" \
     "${COMPOSE_ARGS[@]}" up --build -d
 else
-  ENV_FILE_PATH="$SOURCE_ENV_FILE" MSA_SHARED_NETWORK="$MSA_SHARED_NETWORK" docker compose --env-file "$SOURCE_ENV_FILE" \
+  ENV_FILE_PATH="$EFFECTIVE_ENV_FILE" MSA_SHARED_NETWORK="$MSA_SHARED_NETWORK" docker compose --env-file "$EFFECTIVE_ENV_FILE" \
     "${COMPOSE_ARGS[@]}" down --remove-orphans -v
 fi
