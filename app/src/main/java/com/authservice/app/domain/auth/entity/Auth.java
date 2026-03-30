@@ -13,6 +13,8 @@ import java.util.UUID;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "auth_accounts")
@@ -22,10 +24,12 @@ public class Auth {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
-	@Column(name = "id", nullable = false, updatable = false, columnDefinition = "BINARY(16)")
+	@Column(name = "id", nullable = false, updatable = false, columnDefinition = "char(36)")
+	@JdbcTypeCode(SqlTypes.CHAR)
 	private UUID id;
 
-	@Column(name = "user_id", nullable = false, unique = true, columnDefinition = "BINARY(16)")
+	@Column(name = "user_id", nullable = false, unique = true, columnDefinition = "char(36)")
+	@JdbcTypeCode(SqlTypes.CHAR)
 	private UUID userId;
 
 	@Column(name = "login_id", nullable = false, unique = true)
