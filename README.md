@@ -70,6 +70,7 @@
 ## Redis Endpoint Examples
 
 이 서비스는 중앙 Redis endpoint를 환경변수로 받아 연결합니다.
+현재 `dev`/`prod` 기본값과 Gradle 설정은 `central-redis`를 사용합니다.
 
 ### 로컬에서 auth-service만 실행
 
