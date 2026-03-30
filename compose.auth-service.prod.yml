@@ -16,7 +16,6 @@ services:
     networks:
       - service-shared
       - auth-private
-      - redis-core
 
   auth-mysql:
     image: mysql:8.0
@@ -50,6 +49,3 @@ networks:
   auth-private:
     driver: bridge
     internal: true
-  redis-core:
-    external: true
-    name: redis-core

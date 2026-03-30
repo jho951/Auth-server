@@ -30,7 +30,6 @@ services:
     networks:
       - service-shared
       - auth-private
-      - redis-core
 
   auth-mysql:
     env_file:
@@ -48,6 +47,3 @@ networks:
   auth-private:
     driver: bridge
     internal: true
-  redis-core:
-    external: true
-    name: ${REDIS_NETWORK_NAME:-redis-core}

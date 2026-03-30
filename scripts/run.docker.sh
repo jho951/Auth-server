@@ -64,9 +64,10 @@ ensure_network() {
 }
 
 if [[ "$ACTION" == "up" ]]; then
-  ensure_network "msa-service-shared"
-  ensure_network "redis-core"
-  docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" up --build -d
+  SHARED_NETWORK="${SHARED_SERVICE_NETWORK:-${BACKEND_SHARED_NETWORK:-${SERVICE_SHARED_NETWORK:-service-backbone-shared}}}"
+  ensure_network "$SHARED_NETWORK"
+  SHARED_SERVICE_NETWORK="$SHARED_NETWORK" BACKEND_SHARED_NETWORK="$SHARED_NETWORK" SERVICE_SHARED_NETWORK="$SHARED_NETWORK" \
+    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" up --build -d
 else
   docker compose -p "$COMPOSE_PROJECT_NAME" -f "$COMPOSE_FILE" down --remove-orphans -v
 fi
