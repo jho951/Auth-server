@@ -7,9 +7,11 @@ services:
       dockerfile: docker/Dockerfile
     env_file:
       - .env.dev
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-8081}
     command: ["--spring.profiles.active=dev"]
     ports:
-      - "8081:8081"
+      - "${SERVER_PORT:-8081}:${SERVER_PORT:-8081}"
     depends_on:
       auth-mysql:
         condition: service_healthy
