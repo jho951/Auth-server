@@ -28,18 +28,21 @@ public class SecurityConfig {
 	private final SsoProperties ssoProperties;
 	private final SsoOAuth2SuccessHandler ssoOAuth2SuccessHandler;
 	private final SsoOAuth2FailureHandler ssoOAuth2FailureHandler;
+	private final AccessTokenCookieAuthFilter accessTokenCookieAuthFilter;
 
 	public SecurityConfig(AuthOncePerRequestFilter authFilter,
 		RestAuthHandlers.EntryPoint entryPoint, RestAuthHandlers.Denied denied,
 		SsoProperties ssoProperties,
 		SsoOAuth2SuccessHandler ssoOAuth2SuccessHandler,
-		SsoOAuth2FailureHandler ssoOAuth2FailureHandler) {
+		SsoOAuth2FailureHandler ssoOAuth2FailureHandler,
+		AccessTokenCookieAuthFilter accessTokenCookieAuthFilter) {
 		this.authFilter = authFilter;
 		this.entryPoint = entryPoint;
 		this.denied = denied;
 		this.ssoProperties = ssoProperties;
 		this.ssoOAuth2SuccessHandler = ssoOAuth2SuccessHandler;
 		this.ssoOAuth2FailureHandler = ssoOAuth2FailureHandler;
+		this.accessTokenCookieAuthFilter = accessTokenCookieAuthFilter;
 	}
 
 	@Bean
@@ -117,6 +120,7 @@ public class SecurityConfig {
 				.successHandler(ssoOAuth2SuccessHandler)
 				.failureHandler(ssoOAuth2FailureHandler)
 			)
+			.addFilterBefore(accessTokenCookieAuthFilter, UsernamePasswordAuthenticationFilter.class)
 			.addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();

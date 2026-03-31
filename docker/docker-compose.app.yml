@@ -22,8 +22,6 @@ services:
       REDIS_SSL: ${REDIS_SSL:-false}
       SERVER_PORT: ${SERVER_PORT:-8081}
     command: ["--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
-    ports:
-      - "${SERVER_PORT:-8081}:${SERVER_PORT:-8081}"
     depends_on:
       auth-mysql:
         condition: service_healthy

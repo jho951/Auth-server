@@ -7,6 +7,7 @@
 - 공통 계약 레포: `https://github.com/jho951/contract`
 - 이 서비스의 코드 SoT: `Auth-server` `main`
 - 인터페이스 변경 시 본 저장소 구현보다 계약 레포 변경을 먼저 반영합니다.
+- 책임 분리: `Auth-server`는 인증/세션/토큰, `Authz-server`는 capability 진실, `User-server`는 프로필 공개 범위를 소유합니다.
 
 ## Architecture
 
@@ -114,6 +115,7 @@ export REDIS_SSL=false
 
 - 서비스 책임 분리와 `user-service` 설계안은 [docs/auth-user-service-design.md](./docs/auth-user-service-design.md) 문서를 참고하면 됩니다.
 - 현재 구조에서 `auth-service` 는 인증 컨텍스트를 만들고, `user-service` 는 사용자 마스터 데이터를 소유합니다. SSO 로그인 완료 시 `auth-service` 는 `USER_SERVICE_BASE_URL` 을 통해 `user-service` 를 호출합니다.
+- 권한 보유 사실의 공개 여부는 auth-service가 아닌 user-service privacy/visibility 정책에서 다룹니다.
 - DB 스키마와 환경별 생성 정책은 [docs/database.md](./docs/database.md) 문서를 참고하면 됩니다.
 - 현재 Gradle 루트는 멀티모듈 집계 프로젝트이며, `app`과 `common` 모듈로 구성됩니다.
 - Docker 환경 값의 단일 소스는 루트 `.env.dev`/`.env.prod`입니다.

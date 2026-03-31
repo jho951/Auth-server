@@ -40,7 +40,7 @@ public class SsoSessionStore {
 	}
 
 	public Optional<SsoTicketPayload> consumeTicket(String ticket) {
-		return consume(TICKET_PREFIX + ticket, SsoTicketPayload.class);
+		return consume(new String[] {TICKET_PREFIX + ticket}, SsoTicketPayload.class);
 	}
 
 	public void saveSession(String sessionId, SsoSessionPayload payload, Instant expiresAt) {
