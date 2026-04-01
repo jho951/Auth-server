@@ -8,8 +8,6 @@ services:
     env_file:
       - .env.prod
     command: ["--spring.profiles.active=prod"]
-    ports:
-      - "8081:8081"
     depends_on:
       auth-mysql:
         condition: service_healthy

@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "auth_login_attempts")
@@ -20,7 +22,8 @@ public class AuthLoginAttempt {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
-	@Column(name = "id", nullable = false, updatable = false, columnDefinition = "BINARY(16)")
+	@Column(name = "id", nullable = false, updatable = false, columnDefinition = "char(36)")
+	@JdbcTypeCode(SqlTypes.CHAR)
 	private UUID id;
 
 	@Column(name = "login_id", nullable = false)

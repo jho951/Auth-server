@@ -7,6 +7,7 @@
 - 공통 계약 레포: `https://github.com/jho951/contract`
 - 이 서비스의 코드 SoT: `Auth-server` `main`
 - 인터페이스 변경 시 본 저장소 구현보다 계약 레포 변경을 먼저 반영합니다.
+- 책임 분리: `Auth-server`는 인증/세션/토큰, `Authz-server`는 capability 진실, `User-server`는 프로필 공개 범위를 소유합니다.
 
 ## Architecture
 
@@ -15,6 +16,7 @@
   - refresh rotation
   - logout
   - cookie/session + access token authentication
+- 현재 구현은 외부 `auth` 모듈을 통해 인증 원천과 세션 발급 흐름을 구성한다.
 - `app stack`
   - `mysql`
   - external `redis`
@@ -23,9 +25,9 @@
   - `common`: 공통 설정/응답/로깅 모듈
 - Docker 네트워크 구조
   - `SERVICE_SHARED_NETWORK`(external): gateway/auth/user-service 간 서비스 통신용 공유 네트워크
-    - 기본값: `msa-service-shared`
+    - 기본값: `service-backbone-shared`
   - `auth-private`(internal): auth-service와 auth-mysql 전용 private 네트워크
-  - `redis-core`(external): 중앙 Redis 네트워크
+  - `service-backbone-shared`(external): 중앙 Redis 및 서비스 간 공유 네트워크
 
 ## 실행 가이드
 
@@ -106,12 +108,15 @@ export REDIS_SSL=false
 - 감사 로그 테이블 `auth_audit_logs` 는 제거되었고 현재 코드에서 사용하지 않습니다.
 - `dev` 프로필은 JPA `ddl-auto: create` 로 애플리케이션 시작 시 스키마를 생성합니다.
 - `prod` 프로필은 JPA `ddl-auto: none` 이므로 스키마를 사전에 준비해야 합니다.
-- 운영 DB 수동 마이그레이션 예시는 `db/migrations/2026-03-27_drop_auth_social_accounts.sql` 및 `scripts/db/apply-drop-auth-social-accounts-prod.sh`를 참고하면 됩니다.
+- UUID 식별자는 코드와 DB 모두 `CHAR(36)` 바인딩을 사용합니다.
+- 운영 DB가 이전 `BINARY(16)` 스키마라면 `db/migrations/2026-03-31_bind_uuid_columns_char36.sql` 및 `scripts/db/apply-bind-uuid-char36-prod.sh`를 먼저 적용해야 합니다.
+- 과거 소셜 계정 제거용 마이그레이션이 필요하면 `db/migrations/2026-03-27_drop_auth_social_accounts.sql` 및 `scripts/db/apply-drop-auth-social-accounts-prod.sh`를 참고하면 됩니다.
 
 ## Notes
 
 - 서비스 책임 분리와 `user-service` 설계안은 [docs/auth-user-service-design.md](./docs/auth-user-service-design.md) 문서를 참고하면 됩니다.
 - 현재 구조에서 `auth-service` 는 인증 컨텍스트를 만들고, `user-service` 는 사용자 마스터 데이터를 소유합니다. SSO 로그인 완료 시 `auth-service` 는 `USER_SERVICE_BASE_URL` 을 통해 `user-service` 를 호출합니다.
+- 권한 보유 사실의 공개 여부는 auth-service가 아닌 user-service privacy/visibility 정책에서 다룹니다.
 - DB 스키마와 환경별 생성 정책은 [docs/database.md](./docs/database.md) 문서를 참고하면 됩니다.
 - 현재 Gradle 루트는 멀티모듈 집계 프로젝트이며, `app`과 `common` 모듈로 구성됩니다.
 - Docker 환경 값의 단일 소스는 루트 `.env.dev`/`.env.prod`입니다.
