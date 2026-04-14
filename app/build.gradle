@@ -15,6 +15,7 @@ dependencies {
     implementation libs.mysql.connector
     implementation libs.jackson.databind
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-logging'
     implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -23,11 +24,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation libs.springdoc.openapi
+    implementation platform(libs.platform.governance.bom)
+    implementation libs.platform.governance.starter
     implementation platform(libs.platform.security.bom)
-    implementation libs.platform.security.starter
-    implementation libs.audit.log.config
+    implementation libs.platform.security.issuer.starter
     implementation libs.ip.guard.core
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 

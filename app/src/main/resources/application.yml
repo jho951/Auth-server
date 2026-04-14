@@ -46,7 +46,32 @@ auditlog:
   async-queue-capacity: ${AUDITLOG_ASYNC_QUEUE_CAPACITY:1000}
   web-enabled: ${AUDITLOG_WEB_ENABLED:true}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  metrics:
+    tags:
+      service: ${spring.application.name}
+      env: ${SPRING_PROFILES_ACTIVE:local}
+
 platform:
+  governance:
+    enabled: ${PLATFORM_GOVERNANCE_ENABLED:true}
+    audit:
+      enabled: ${PLATFORM_GOVERNANCE_AUDIT_ENABLED:true}
+    plugin-policy-engine:
+      store: ${PLATFORM_GOVERNANCE_POLICY_ENGINE_STORE:MEMORY}
+      file-path: ${PLATFORM_GOVERNANCE_POLICY_ENGINE_FILE_PATH:}
+      cache-ttl-millis: ${PLATFORM_GOVERNANCE_POLICY_ENGINE_CACHE_TTL_MILLIS:3000}
+    engine:
+      strict: ${PLATFORM_GOVERNANCE_ENGINE_STRICT:false}
   security:
     enabled: true
     boundary:

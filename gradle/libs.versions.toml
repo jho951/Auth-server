@@ -4,8 +4,8 @@ spring-dependency-management = "1.1.6"
 springdoc = "2.5.0"
 junit-jupiter = "5.11.3"
 junit-platform = "1.11.3"
-audit-log = "1.0.1"
-platform-security = "1.0.3"
+platform-governance = "1.0.0"
+platform-security = "1.0.4"
 ip-guard = "3.0.0"
 
 [libraries]
@@ -17,9 +17,10 @@ mysql-connector = { module = "com.mysql:mysql-connector-j" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 springdoc-openapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
-audit-log-config = { module = "io.github.jho951:config", version.ref = "audit-log" }
+platform-governance-bom = { module = "io.github.jho951.platform:platform-governance-bom", version.ref = "platform-governance" }
+platform-governance-starter = { module = "io.github.jho951.platform:platform-governance-spring-boot-starter" }
 platform-security-bom = { module = "io.github.jho951.platform:platform-security-bom", version.ref = "platform-security" }
-platform-security-starter = { module = "io.github.jho951.platform:platform-security-starter", version.ref = "platform-security" }
+platform-security-issuer-starter = { module = "io.github.jho951.platform:platform-security-issuer-starter", version.ref = "platform-security" }
 platform-security-test-support = { module = "io.github.jho951.platform:platform-security-test-support", version.ref = "platform-security" }
 ip-guard-core = { module = "io.github.jho951:ip-guard-core", version.ref = "ip-guard" }
 

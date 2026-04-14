@@ -77,6 +77,7 @@ public class AuthJwtTokenService {
 
 		Map<String, Object> claims = new HashMap<>(principal.attributes());
 		claims.remove(KEY_ISSUER);
+		claims.remove(KEY_AUDIENCE);
 		if (!principal.roles().isEmpty()) {
 			claims.put(KEY_AUTHORITIES, principal.roles());
 			claims.put(KEY_ROLES, principal.roles());
@@ -116,6 +117,7 @@ public class AuthJwtTokenService {
 			attributes.remove(KEY_AUTHORITIES);
 			attributes.remove(KEY_ROLES);
 			attributes.remove(KEY_ISSUER);
+			attributes.remove(KEY_AUDIENCE);
 
 			List<String> authorities = toAuthorities(claims.get(KEY_AUTHORITIES, Object.class));
 			if (authorities.isEmpty()) {

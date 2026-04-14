@@ -1,15 +1,15 @@
 openapi: 3.0.3
 info:
-  title: Auth Service API 문서
+  title: Auth Service Upstream API 문서
   version: 1.0.0
   description: |
-    Auth-server API 문서입니다.
+    Local copy of service-contract/contracts/openapi/auth-service.upstream.v1.yaml.
+    이 문서는 Auth-service upstream route만 설명합니다.
+    Public /v1 route는 Gateway contract가 소유합니다.
     이 서비스는 로그인, 토큰 갱신, 로그아웃, GitHub SSO, 세션 검증, 내부 auth account 관리를 제공합니다.
 servers:
   - url: /
     description: auth-service 직접 호출 기본 경로
-  - url: /v1
-    description: Gateway v1 prefix가 붙은 경로
 
 tags:
   - name: Status
@@ -215,6 +215,31 @@ paths:
       responses:
         '302':
           description: Spring OAuth2 callback endpoint로 redirect합니다.
+          headers:
+            Location:
+              schema:
+                type: string
+
+  /login/oauth2/code/github:
+    get:
+      tags: [SSO]
+      summary: GitHub OAuth callback
+      operationId: githubOAuthCallback
+      description: Gateway public `/v1/login/oauth2/code/github`에서 `/v1` prefix를 제거해 전달되는 Spring Security OAuth callback입니다.
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: SSO ticket 또는 error를 포함한 frontend redirect로 응답합니다.
           headers:
             Location:
               schema:
