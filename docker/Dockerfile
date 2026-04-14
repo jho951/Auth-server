@@ -1,7 +1,11 @@
-# 1단계: 빌드 스테이지
 FROM gradle:8.5-jdk17 AS build
 
 WORKDIR /app
+
+ARG GITHUB_ACTOR
+ARG GITHUB_TOKEN
+ENV GITHUB_ACTOR=${GITHUB_ACTOR}
+ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 
 # 멀티모듈 의존성 캐시를 위해 빌드 설정부터 복사
 COPY gradle gradle

@@ -22,6 +22,8 @@
 ## Sync Checklist
 - [ ] `USER_SERVICE_BASE_URL` uses service DNS (`http://user-service:8082`)
 - [ ] internal JWT claims (`iss/aud/scope`) match contract
+- [ ] auth/security dependency set stays aligned with `platform-security` published modules and version matrix
+- [ ] `SecurityContextResolver` is provided explicitly through `PlatformSecurityContextResolvers.hybrid(...)` or another production resolver
 - [ ] SSO provider and MFA step-up behavior match `contracts/auth/v2.md`
 - [ ] authz snapshots/claims emitted by auth align with `contracts/authz/v2.md`
 - [ ] user provisioning uses contract-defined endpoints

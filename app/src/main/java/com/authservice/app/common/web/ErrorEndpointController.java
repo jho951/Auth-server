@@ -9,13 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 애플리케이션에서 발생하는 모든 예외 및 에러를 처리하는 전역 에러 컨트롤러입니다.
- * <p>
- * Spring Boot의 기본 에러 핸들링 메커니즘을 오버라이드하거나 보조하여,
- * 클라이언트에게 표준화된 JSON 구조의 에러 응답을 반환합니다.
- * </p>
- */
+/** 애플리케이션에서 발생하는 모든 예외 및 에러를 처리하는 전역 에러 컨트롤러입니다. */
 @RestController
 public class ErrorEndpointController {
 
@@ -40,9 +34,7 @@ public class ErrorEndpointController {
 		HttpStatus status = HttpStatus.resolve(rawStatus);
 		if (status == null) status = HttpStatus.INTERNAL_SERVER_ERROR;
 
-		String errorMessage = message instanceof String text && !text.isBlank()
-			? text
-			: status.getReasonPhrase();
+		String errorMessage = message instanceof String text && !text.isBlank() ? text : status.getReasonPhrase();
 
 		return ResponseEntity.status(status)
 			.contentType(MediaType.APPLICATION_JSON)

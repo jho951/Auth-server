@@ -1,10 +1,8 @@
 package com.authservice.app.security;
 
-import com.auth.api.exception.AuthException;
-import com.auth.api.exception.AuthFailureReason;
-import com.auth.api.model.Principal;
-import com.auth.common.utils.Strings;
-import com.auth.spi.TokenService;
+import com.authservice.app.common.base.constant.ErrorCode;
+import com.authservice.app.common.base.exception.GlobalException;
+import com.authservice.app.domain.auth.model.AuthPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtBuilder;
@@ -24,7 +22,7 @@ import java.util.Map;
  * auth-service의 JWT 발급 구현체입니다.
  * access token에는 issuer를 명시적으로 넣어 downstream이 발급 주체를 판별할 수 있게 합니다.
  */
-public class AuthJwtTokenService implements TokenService {
+public class AuthJwtTokenService {
 
 	private static final String KEY_ISSUER = "iss";
 	private static final String KEY_AUDIENCE = "aud";
@@ -41,15 +39,15 @@ public class AuthJwtTokenService implements TokenService {
 	private final long refreshSeconds;
 
 	public AuthJwtTokenService(String secret, String audience, long accessSeconds, long refreshSeconds) {
-		if (Strings.isBlank(secret)) {
-			throw new AuthException(AuthFailureReason.INVALID_INPUT, "auth.jwt.secret must not be blank");
+		if (secret == null || secret.isBlank()) {
+			throw new GlobalException(ErrorCode.INVALID_REQUEST);
 		}
-		if (Strings.isBlank(audience)) {
-			throw new AuthException(AuthFailureReason.INVALID_INPUT, "auth.jwt.audience must not be blank");
+		if (audience == null || audience.isBlank()) {
+			throw new GlobalException(ErrorCode.INVALID_REQUEST);
 		}
 		byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
 		if (secretBytes.length < 32) {
-			throw new AuthException(AuthFailureReason.INVALID_INPUT, "auth.jwt.secret must be at least 32 bytes for HS256");
+			throw new GlobalException(ErrorCode.INVALID_REQUEST);
 		}
 		this.key = Keys.hmacShaKeyFor(secretBytes);
 		this.audience = audience;
@@ -57,39 +55,35 @@ public class AuthJwtTokenService implements TokenService {
 		this.refreshSeconds = refreshSeconds;
 	}
 
-	@Override
-	public String issueAccessToken(Principal principal) {
+	public String issueAccessToken(AuthPrincipal principal) {
 		return buildToken(principal, accessSeconds, TOKEN_TYPE_ACCESS, true);
 	}
 
-	@Override
-	public String issueRefreshToken(Principal principal) {
+	public String issueRefreshToken(AuthPrincipal principal) {
 		return buildToken(principal, refreshSeconds, TOKEN_TYPE_REFRESH, false);
 	}
 
-	@Override
-	public Principal verifyAccessToken(String token) {
+	public AuthPrincipal verifyAccessToken(String token) {
 		return parseAndToPrincipal(token, TOKEN_TYPE_ACCESS);
 	}
 
-	@Override
-	public Principal verifyRefreshToken(String token) {
+	public AuthPrincipal verifyRefreshToken(String token) {
 		return parseAndToPrincipal(token, TOKEN_TYPE_REFRESH);
 	}
 
-	private String buildToken(Principal principal, long ttlSeconds, String tokenType, boolean includeIssuer) {
+	private String buildToken(AuthPrincipal principal, long ttlSeconds, String tokenType, boolean includeIssuer) {
 		Date issuedAt = new Date();
 		Date expiration = new Date(issuedAt.getTime() + (Math.max(ttlSeconds, 1) * 1000L));
 
-		Map<String, Object> claims = new HashMap<>(principal.getAttributes());
+		Map<String, Object> claims = new HashMap<>(principal.attributes());
 		claims.remove(KEY_ISSUER);
-		if (!principal.getAuthorities().isEmpty()) {
-			claims.put(KEY_AUTHORITIES, principal.getAuthorities());
-			claims.put(KEY_ROLES, principal.getAuthorities());
+		if (!principal.roles().isEmpty()) {
+			claims.put(KEY_AUTHORITIES, principal.roles());
+			claims.put(KEY_ROLES, principal.roles());
 		}
 
 		JwtBuilder builder = Jwts.builder()
-			.setSubject(principal.getUserId())
+			.setSubject(principal.userId())
 			.setAudience(audience)
 			.addClaims(claims)
 			.claim(KEY_TOKEN_TYPE, tokenType)
@@ -103,14 +97,14 @@ public class AuthJwtTokenService implements TokenService {
 		return builder.signWith(key, SignatureAlgorithm.HS256).compact();
 	}
 
-	private Principal parseAndToPrincipal(String token, String expectedTokenType) {
+	private AuthPrincipal parseAndToPrincipal(String token, String expectedTokenType) {
 		try {
 			JwtParser parser = parserBuilder().build();
 			Claims claims = parser.parseClaimsJws(token).getBody();
 
 			String tokenType = claims.get(KEY_TOKEN_TYPE, String.class);
 			if (tokenType == null || !tokenType.equals(expectedTokenType)) {
-				throw new AuthException(AuthFailureReason.INVALID_TOKEN, "invalid token type");
+				throw new GlobalException(ErrorCode.INVALID_TOKEN);
 			}
 
 			String userId = claims.getSubject();
@@ -128,11 +122,11 @@ public class AuthJwtTokenService implements TokenService {
 				authorities = toAuthorities(claims.get(KEY_ROLES, Object.class));
 			}
 
-			return new Principal(userId, authorities, attributes);
-		} catch (AuthException ex) {
+			return new AuthPrincipal(userId, authorities, attributes);
+		} catch (GlobalException ex) {
 			throw ex;
 		} catch (JwtException | IllegalArgumentException ex) {
-			throw new AuthException(AuthFailureReason.INVALID_TOKEN, "invalid/expired token", ex);
+			throw new GlobalException(ErrorCode.INVALID_TOKEN);
 		}
 	}
 

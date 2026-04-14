@@ -2,7 +2,7 @@ package com.authservice.app.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.auth.api.model.Principal;
+import com.authservice.app.domain.auth.model.AuthPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -20,7 +20,7 @@ class AuthJwtTokenServiceTest {
 	@Test
 	void accessTokenContainsIssuerAuthService() {
 		AuthJwtTokenService tokenService = new AuthJwtTokenService(SECRET, "block-service", 60, 120);
-		Principal principal = new Principal("46c45ce7-d50c-436e-9394-263941839cf7", List.of("USER"));
+		AuthPrincipal principal = new AuthPrincipal("46c45ce7-d50c-436e-9394-263941839cf7", List.of("USER"), java.util.Map.of());
 
 		String token = tokenService.issueAccessToken(principal);
 
@@ -32,7 +32,7 @@ class AuthJwtTokenServiceTest {
 
 		assertThat(claims.getIssuer()).isEqualTo("auth-service");
 		assertThat(claims.getAudience()).isEqualTo("block-service");
-		assertThat(claims.getSubject()).isEqualTo(principal.getUserId());
+		assertThat(claims.getSubject()).isEqualTo(principal.userId());
 		assertThat(claims.get("token_type", String.class)).isEqualTo("access");
 		assertThat(claims.get("authorities")).isInstanceOf(List.class);
 		assertThat(claims.get("roles")).isInstanceOf(List.class);
@@ -41,7 +41,7 @@ class AuthJwtTokenServiceTest {
 	@Test
 	void refreshTokenDoesNotNeedIssuerButStillVerifies() {
 		AuthJwtTokenService tokenService = new AuthJwtTokenService(SECRET, "block-service", 60, 120);
-		Principal principal = new Principal("46c45ce7-d50c-436e-9394-263941839cf7", List.of("USER"));
+		AuthPrincipal principal = new AuthPrincipal("46c45ce7-d50c-436e-9394-263941839cf7", List.of("USER"), java.util.Map.of());
 
 		String token = tokenService.issueRefreshToken(principal);
 
@@ -54,6 +54,6 @@ class AuthJwtTokenServiceTest {
 		assertThat(claims.getIssuer()).isNull();
 		assertThat(claims.getAudience()).isEqualTo("block-service");
 		assertThat(claims.get("token_type", String.class)).isEqualTo("refresh");
-		assertThat(tokenService.verifyRefreshToken(token).getUserId()).isEqualTo(principal.getUserId());
+		assertThat(tokenService.verifyRefreshToken(token).userId()).isEqualTo(principal.userId());
 	}
 }

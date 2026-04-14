@@ -1,4 +1,26 @@
-rootProject.name = 'Auth-server'
+def githubPackagesUsername = providers.environmentVariable('GITHUB_ACTOR')
+	.orElse(providers.gradleProperty('githubPackagesUsername'))
+	.orElse(providers.gradleProperty('githubUsername'))
+def githubPackagesToken = providers.environmentVariable('GITHUB_TOKEN')
+	.orElse(providers.gradleProperty('githubPackagesToken'))
+	.orElse(providers.gradleProperty('githubToken'))
 
+dependencyResolutionManagement {
+	repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+	repositories {
+		mavenCentral()
+		maven {
+			url = uri('https://maven.pkg.github.com/jho951/platform-security')
+			if (githubPackagesUsername.present && githubPackagesToken.present) {
+				credentials {
+					username = githubPackagesUsername.get()
+					password = githubPackagesToken.get()
+				}
+			}
+		}
+	}
+}
+
+rootProject.name = 'Auth-server'
 include 'app'
 include 'common'

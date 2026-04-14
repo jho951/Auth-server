@@ -4,7 +4,6 @@ spring:
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
-      - com.ipguard.config.IpGuardAutoConfiguration
 
   config:
     import:
@@ -26,14 +25,13 @@ internal:
 
 user-service:
   base-url: ${USER_SERVICE_BASE_URL:}
-  internal-api-key: ${USER_SERVICE_INTERNAL_API_KEY:${INTERNAL_API_KEY:local-internal-api-key}}
   jwt:
     issuer: ${USER_SERVICE_JWT_ISSUER:auth-service}
     audience: ${USER_SERVICE_JWT_AUDIENCE:user-service}
     subject: ${USER_SERVICE_JWT_SUBJECT:auth-service}
     scope: ${USER_SERVICE_JWT_SCOPE:internal}
     ttl-seconds: ${USER_SERVICE_JWT_TTL_SECONDS:60}
-    secret: ${USER_SERVICE_JWT_SECRET:${AUTH_JWT_SECRET:${JWT_ACCESS_TOKEN_SECRET:}}}
+    secret: ${USER_SERVICE_JWT_SECRET:${AUTH_JWT_SECRET:}}
 
 auditlog:
   enabled: ${AUDITLOG_ENABLED:true}
@@ -47,3 +45,63 @@ auditlog:
   async-thread-count: ${AUDITLOG_ASYNC_THREAD_COUNT:2}
   async-queue-capacity: ${AUDITLOG_ASYNC_QUEUE_CAPACITY:1000}
   web-enabled: ${AUDITLOG_WEB_ENABLED:true}
+
+platform:
+  security:
+    enabled: true
+    boundary:
+      public-paths:
+        - /
+        - /.well-known/**
+        - /error
+        - /health
+        - /actuator/**
+        - /favicon.ico
+        - /auth/login
+        - /auth/refresh
+        - /auth/logout
+        - /auth/sso/start
+        - /auth/oauth/github/callback
+        - /auth/login/github
+        - /auth/oauth2/authorize/github
+        - /auth/exchange
+        - /oauth2/**
+        - /login/oauth2/**
+      protected-paths:
+        - /auth/session
+        - /auth/me
+        - /api/**
+      admin-paths:
+        - /admin/**
+      internal-paths:
+        - /internal/**
+        - /auth/internal/**
+    auth:
+      enabled: true
+      default-mode: HYBRID
+      allow-session-for-browser: true
+      allow-bearer-for-api: true
+      internal-token-enabled: true
+      access-token-cookie-name: ${AUTH_ACCESS_COOKIE_NAME:ACCESS_TOKEN}
+      session-cookie-name: ${SSO_SESSION_COOKIE_NAME:sso_session}
+      jwt-secret: ${AUTH_JWT_SECRET:local-dev-auth-secret-local-dev-auth-secret}
+      access-token-ttl: PT20M
+      refresh-token-ttl: PT30000S
+    ip-guard:
+      enabled: true
+      trust-proxy: true
+      admin-allow-cidrs:
+        - ${PLATFORM_SECURITY_ADMIN_ALLOW_CIDR:10.0.0.0/8}
+      internal-allow-cidrs:
+        - ${PLATFORM_SECURITY_INTERNAL_ALLOW_CIDR:172.16.0.0/12}
+    rate-limit:
+      enabled: true
+      anonymous:
+        requests: 30
+        window-seconds: 60
+      authenticated:
+        requests: 200
+        window-seconds: 60
+      internal:
+        requests: 1000
+        window-seconds: 60

@@ -27,7 +27,7 @@ public class SsoCookieService {
 	public SsoCookieService(
 		SsoProperties properties,
 		@Value("${AUTH_ACCESS_COOKIE_NAME:ACCESS_TOKEN}") String accessTokenCookieName,
-		@Value("${AUTH_ACCESS_EXPIRATION:${JWT_ACCESS_EXPIRATION:1200}}") long accessTokenTtlSeconds,
+		@Value("${AUTH_ACCESS_EXPIRATION:1200}") long accessTokenTtlSeconds,
 		@Value("${AUTH_ACCESS_COOKIE_HTTP_ONLY:true}") boolean accessTokenCookieHttpOnly,
 		@Value("${AUTH_ACCESS_COOKIE_SECURE:${SSO_SESSION_COOKIE_SECURE:false}}") boolean accessTokenCookieSecure,
 		@Value("${AUTH_ACCESS_COOKIE_SAME_SITE:${SSO_SESSION_COOKIE_SAME_SITE:Lax}}") String accessTokenCookieSameSite,
