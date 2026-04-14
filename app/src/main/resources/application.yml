@@ -109,7 +109,7 @@ platform:
       internal-token-enabled: true
       access-token-cookie-name: ${AUTH_ACCESS_COOKIE_NAME:ACCESS_TOKEN}
       session-cookie-name: ${SSO_SESSION_COOKIE_NAME:sso_session}
-      jwt-secret: ${AUTH_JWT_SECRET:local-dev-auth-secret-local-dev-auth-secret}
+      jwt-secret: ${AUTH_JWT_SECRET:}
       access-token-ttl: PT20M
       refresh-token-ttl: PT30000S
     ip-guard:

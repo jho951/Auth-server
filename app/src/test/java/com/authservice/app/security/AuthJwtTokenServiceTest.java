@@ -1,7 +1,10 @@
 package com.authservice.app.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.authservice.app.common.base.exception.GlobalException;
+import com.authservice.app.domain.auth.config.AuthHttpProperties;
 import com.authservice.app.domain.auth.model.AuthPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -55,5 +58,14 @@ class AuthJwtTokenServiceTest {
 		assertThat(claims.getAudience()).isEqualTo("block-service");
 		assertThat(claims.get("token_type", String.class)).isEqualTo("refresh");
 		assertThat(tokenService.verifyRefreshToken(token).userId()).isEqualTo(principal.userId());
+	}
+
+	@Test
+	void tokenServiceConfigFailsFastWithoutExplicitSecret() {
+		AuthHttpProperties properties = new AuthHttpProperties();
+		properties.getJwt().setSecret("");
+
+		assertThatThrownBy(() -> new AuthJwtTokenServiceConfig().tokenService(properties, "block-service"))
+			.isInstanceOf(GlobalException.class);
 	}
 }

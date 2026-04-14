@@ -14,7 +14,7 @@ auth:
     authorization-base-uri: /oauth2/authorization
     login-processing-base-uri: /login/oauth2/code/*
   jwt:
-    secret: ${AUTH_JWT_SECRET:local-dev-auth-secret-local-dev-auth-secret}
+    secret: ${AUTH_JWT_SECRET:}
     access-seconds: ${AUTH_ACCESS_EXPIRATION:1200}
     refresh-seconds: ${AUTH_REFRESH_EXPIRATION:30000}
 

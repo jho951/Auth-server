@@ -1,5 +1,6 @@
 package com.authservice.app.security;
 
+import com.authservice.app.domain.auth.config.AuthHttpProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,20 +12,15 @@ public class AuthJwtTokenServiceConfig {
 	@Bean
 	@Primary
 	public AuthJwtTokenService tokenService(
-		@Value("${AUTH_JWT_SECRET:local-dev-auth-secret-local-dev-auth-secret}")
-		String secret,
-		@Value("${AUTH_ACCESS_EXPIRATION:1200}")
-		long accessSeconds,
-		@Value("${AUTH_REFRESH_EXPIRATION:30000}")
-		long refreshSeconds,
+		AuthHttpProperties properties,
 		@Value("${AUTH_JWT_AUDIENCE:block-service}")
 		String audience
 	) {
 		return new AuthJwtTokenService(
-			secret,
+			properties.getJwt().getSecret(),
 			audience,
-			accessSeconds,
-			refreshSeconds
+			properties.getJwt().getAccessSeconds(),
+			properties.getJwt().getRefreshSeconds()
 		);
 	}
 }

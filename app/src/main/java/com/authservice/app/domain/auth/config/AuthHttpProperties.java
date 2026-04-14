@@ -100,7 +100,25 @@ public class AuthHttpProperties {
 	}
 
 	public static class Jwt {
+		private String secret = "";
+		private long accessSeconds = 1200L;
 		private long refreshSeconds = 30000L;
+
+		public String getSecret() {
+			return secret;
+		}
+
+		public void setSecret(String secret) {
+			this.secret = secret == null ? "" : secret;
+		}
+
+		public long getAccessSeconds() {
+			return accessSeconds;
+		}
+
+		public void setAccessSeconds(long accessSeconds) {
+			this.accessSeconds = accessSeconds;
+		}
 
 		public long getRefreshSeconds() {
 			return refreshSeconds;
