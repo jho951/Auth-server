@@ -1,21 +1,15 @@
 package com.authservice.app.security;
 
-import com.auth.api.model.Principal;
-import com.auth.session.SessionPrincipalMapper;
-import com.auth.session.SessionStore;
-import com.auth.spi.TokenService;
 import com.authservice.app.domain.auth.model.AuthPrincipal;
 import com.authservice.app.domain.auth.sso.model.SsoStorePayloads.SsoSessionPayload;
 import com.authservice.app.domain.auth.sso.service.SsoSessionStore;
-import io.github.jho951.platform.security.auth.PlatformSecurityContextResolvers;
+import io.github.jho951.platform.security.api.SecurityContext;
 import io.github.jho951.platform.security.api.SecurityContextResolver;
-import io.github.jho951.platform.security.policy.PlatformSecurityProperties;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -23,129 +17,118 @@ import org.springframework.context.annotation.Primary;
 @Configuration
 public class PlatformSecurityAuthConfig {
 
+	private static final String ACCESS_TOKEN_ATTRIBUTE = "auth.accessToken";
+	private static final String SESSION_ID_ATTRIBUTE = "auth.sessionId";
+	private static final String AUTHENTICATED_ATTRIBUTE = "auth.authenticated";
+	private static final String PRINCIPAL_ATTRIBUTE = "auth.principal";
+	private static final String ROLES_ATTRIBUTE = "auth.roles";
+
 	@Bean
 	@Primary
 	public SecurityContextResolver securityContextResolver(
-		TokenService platformTokenService,
-		SessionStore platformSessionStore,
-		SessionPrincipalMapper platformSessionPrincipalMapper
+		AuthJwtTokenService tokenService,
+		SsoSessionStore sessionStore
 	) {
-		return PlatformSecurityContextResolvers.hybrid(
-			platformTokenService,
-			platformSessionStore,
-			platformSessionPrincipalMapper
-		);
+		return request -> resolveAccessToken(tokenService, request.attributes())
+			.or(() -> resolveSession(sessionStore, request.attributes()))
+			.orElseGet(() -> requestPrincipalContext(request.attributes()));
 	}
 
-	@Bean
-	public TokenService platformTokenService(AuthJwtTokenService tokenService) {
-		return new TokenService() {
-			@Override
-			public String issueAccessToken(Principal principal) {
-				return tokenService.issueAccessToken(toAuthPrincipal(principal));
-			}
-
-			@Override
-			public String issueRefreshToken(Principal principal) {
-				return tokenService.issueRefreshToken(toAuthPrincipal(principal));
-			}
-
-			@Override
-			public Principal verifyAccessToken(String token) {
-				return toPlatformPrincipal(tokenService.verifyAccessToken(token));
-			}
-
-			@Override
-			public Principal verifyRefreshToken(String token) {
-				return toPlatformPrincipal(tokenService.verifyRefreshToken(token));
-			}
-		};
-	}
-
-	@Bean
-	public SessionStore platformSessionStore(
-		SsoSessionStore ssoSessionStore,
-		PlatformSecurityProperties platformSecurityProperties
+	private static Optional<SecurityContext> resolveAccessToken(
+		AuthJwtTokenService tokenService,
+		Map<String, String> attributes
 	) {
-		return new SessionStore() {
-			@Override
-			public void save(String sessionId, Principal principal) {
-				Instant expiresAt = Instant.now().plus(sessionTtl(platformSecurityProperties));
-				Map<String, Object> attributes = principal.getAttributes();
-				ssoSessionStore.saveSession(
-					sessionId,
-					new SsoSessionPayload(
-						principal.getUserId(),
-						stringAttribute(attributes, "email"),
-						stringAttribute(attributes, "name"),
-						stringAttribute(attributes, "avatarUrl"),
-						principal.getAuthorities(),
-						stringAttribute(attributes, "status"),
-						expiresAt
-					),
-					expiresAt
-				);
-			}
+		String accessToken = stringAttribute(attributes, ACCESS_TOKEN_ATTRIBUTE);
+		if (accessToken == null) {
+			return Optional.empty();
+		}
 
-			@Override
-			public Optional<Principal> find(String sessionId) {
-				return ssoSessionStore.findSession(sessionId).map(PlatformSecurityAuthConfig::toPlatformPrincipal);
-			}
-
-			@Override
-			public void revoke(String sessionId) {
-				ssoSessionStore.revokeSession(sessionId);
-			}
-		};
+		try {
+			return Optional.of(toSecurityContext(tokenService.verifyAccessToken(accessToken)));
+		} catch (RuntimeException ex) {
+			return Optional.empty();
+		}
 	}
 
-	@Bean
-	public SessionPrincipalMapper platformSessionPrincipalMapper() {
-		return (sessionId, principal, attributes) -> principal;
+	private static Optional<SecurityContext> resolveSession(
+		SsoSessionStore sessionStore,
+		Map<String, String> attributes
+	) {
+		String sessionId = stringAttribute(attributes, SESSION_ID_ATTRIBUTE);
+		if (sessionId == null) {
+			return Optional.empty();
+		}
+		return sessionStore.findSession(sessionId).map(PlatformSecurityAuthConfig::toSecurityContext);
 	}
 
-	private static Principal toPlatformPrincipal(AuthPrincipal principal) {
-		return new Principal(principal.userId(), principal.roles(), new LinkedHashMap<>(principal.attributes()));
+	private static SecurityContext requestPrincipalContext(Map<String, String> attributes) {
+		if (!Boolean.parseBoolean(attributes.getOrDefault(AUTHENTICATED_ATTRIBUTE, "false"))) {
+			return anonymousContext();
+		}
+
+		String principal = stringAttribute(attributes, PRINCIPAL_ATTRIBUTE);
+		if (principal == null) {
+			return anonymousContext();
+		}
+		return new SecurityContext(true, principal, parseRoles(attributes.get(ROLES_ATTRIBUTE)), Map.of());
 	}
 
-	private static Principal toPlatformPrincipal(SsoSessionPayload payload) {
-		Map<String, Object> attributes = new LinkedHashMap<>();
+	private static SecurityContext toSecurityContext(AuthPrincipal principal) {
+		Map<String, String> attributes = new LinkedHashMap<>();
+		for (Map.Entry<String, Object> entry : principal.attributes().entrySet()) {
+			if (entry.getValue() instanceof String value && !value.isBlank()) {
+				attributes.put(entry.getKey(), value);
+			}
+		}
+		return new SecurityContext(true, principal.userId(), new LinkedHashSet<>(principal.roles()), attributes);
+	}
+
+	private static SecurityContext toSecurityContext(SsoSessionPayload payload) {
+		Map<String, String> attributes = new LinkedHashMap<>();
 		putIfPresent(attributes, "email", payload.getEmail());
 		putIfPresent(attributes, "name", payload.getName());
 		putIfPresent(attributes, "avatarUrl", payload.getAvatarUrl());
 		putIfPresent(attributes, "status", payload.getStatus());
-		return new Principal(payload.getUserId(), listOrEmpty(payload.getRoles()), attributes);
+		return new SecurityContext(true, payload.getUserId(), rolesOrEmpty(payload.getRoles()), attributes);
 	}
 
-	private static AuthPrincipal toAuthPrincipal(Principal principal) {
-		return new AuthPrincipal(
-			principal.getUserId(),
-			principal.getAuthorities(),
-			new LinkedHashMap<>(principal.getAttributes())
-		);
-	}
-
-	private static Duration sessionTtl(PlatformSecurityProperties properties) {
-		Duration ttl = properties.getAuth().getRefreshTokenTtl();
-		if (ttl == null || ttl.isNegative() || ttl.isZero()) {
-			return Duration.ofHours(8);
+	private static Set<String> parseRoles(String rawRoles) {
+		if (rawRoles == null || rawRoles.isBlank()) {
+			return Set.of();
 		}
-		return ttl;
-	}
-
-	private static List<String> listOrEmpty(List<String> values) {
-		return values == null ? List.of() : values;
-	}
-
-	private static String stringAttribute(Map<String, Object> attributes, String key) {
-		Object value = attributes.get(key);
-		if (value instanceof String text && !text.isBlank()) {
-			return text;
+		Set<String> roles = new LinkedHashSet<>();
+		for (String role : rawRoles.split(",")) {
+			String trimmed = role.trim();
+			if (!trimmed.isBlank()) {
+				roles.add(trimmed);
+			}
 		}
-		return null;
+		return roles;
 	}
 
-	private static void putIfPresent(Map<String, Object> values, String key, String value) {
+	private static Set<String> rolesOrEmpty(Iterable<String> rawRoles) {
+		if (rawRoles == null) {
+			return Set.of();
+		}
+		Set<String> roles = new LinkedHashSet<>();
+		for (String role : rawRoles) {
+			if (role != null && !role.isBlank()) {
+				roles.add(role);
+			}
+		}
+		return roles;
+	}
+
+	private static SecurityContext anonymousContext() {
+		return new SecurityContext(false, null, Set.of(), Map.of());
+	}
+
+	private static String stringAttribute(Map<String, String> attributes, String key) {
+		String value = attributes.get(key);
+		return value == null || value.isBlank() ? null : value;
+	}
+
+	private static void putIfPresent(Map<String, String> values, String key, String value) {
 		if (value != null && !value.isBlank()) {
 			values.putIfAbsent(key, value);
 		}

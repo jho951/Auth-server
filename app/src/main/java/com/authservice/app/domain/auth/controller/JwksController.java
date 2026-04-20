@@ -1,4 +1,4 @@
-package com.authservice.app.common.web;
+package com.authservice.app.domain.auth.controller;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -63,7 +63,7 @@ public class JwksController {
 	@GetMapping("/.well-known/jwks.json")
 	public ResponseEntity<Map<String, Object>> jwks() {
 		if (!isRsaAlgorithm(authJwtAlgorithm)) return ResponseEntity.ok(Map.of("keys", List.of()));
-		if (authJwtPublicKeyPem == null ) return ResponseEntity.ok(Map.of("keys", List.of()));
+		if (authJwtPublicKeyPem == null) return ResponseEntity.ok(Map.of("keys", List.of()));
 		if (authJwtPublicKeyPem.isBlank()) return ResponseEntity.ok(Map.of("keys", List.of()));
 		RSAPublicKey rsaPublicKey = parseRsaPublicKey(authJwtPublicKeyPem);
 		Map<String, String> jwk = Map.of(
@@ -77,4 +77,3 @@ public class JwksController {
 		return ResponseEntity.ok(Map.of("keys", List.of(jwk)));
 	}
 }
-

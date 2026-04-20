@@ -33,6 +33,8 @@ public class SecurityConfig {
 	private final SsoOAuth2SuccessHandler ssoOAuth2SuccessHandler;
 	private final SsoOAuth2FailureHandler ssoOAuth2FailureHandler;
 	private final Filter platformSecurityServletFilter;
+	private final InternalEndpointAccessFilter internalEndpointAccessFilter;
+	private final CookieCsrfOriginGuardFilter cookieCsrfOriginGuardFilter;
 	private final Environment environment;
 
 	public SecurityConfig(
@@ -42,6 +44,8 @@ public class SecurityConfig {
 		SsoOAuth2SuccessHandler ssoOAuth2SuccessHandler,
 		SsoOAuth2FailureHandler ssoOAuth2FailureHandler,
 		@Qualifier("securityServletFilter") Filter platformSecurityServletFilter,
+		InternalEndpointAccessFilter internalEndpointAccessFilter,
+		CookieCsrfOriginGuardFilter cookieCsrfOriginGuardFilter,
 		Environment environment) {
 		this.entryPoint = entryPoint;
 		this.denied = denied;
@@ -49,6 +53,8 @@ public class SecurityConfig {
 		this.ssoOAuth2SuccessHandler = ssoOAuth2SuccessHandler;
 		this.ssoOAuth2FailureHandler = ssoOAuth2FailureHandler;
 		this.platformSecurityServletFilter = platformSecurityServletFilter;
+		this.internalEndpointAccessFilter = internalEndpointAccessFilter;
+		this.cookieCsrfOriginGuardFilter = cookieCsrfOriginGuardFilter;
 		this.environment = environment;
 	}
 
@@ -68,10 +74,15 @@ public class SecurityConfig {
 			.exceptionHandling(e -> e.authenticationEntryPoint(entryPoint).accessDeniedHandler(denied))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(
-					"/auth/session"
+					protectedRequestMatchers()
 				).authenticated()
 				.requestMatchers(
 					publicRequestMatchers()
+				).permitAll()
+				// Internal endpoints are not public; this pass-through lets the platform
+				// boundary and InternalEndpointAccessFilter enforce internal caller proof.
+				.requestMatchers(
+					internalPassThroughRequestMatchers()
 				).permitAll()
 				.anyRequest().authenticated()
 			)
@@ -88,9 +99,18 @@ public class SecurityConfig {
 				.successHandler(ssoOAuth2SuccessHandler)
 				.failureHandler(ssoOAuth2FailureHandler)
 			)
+			.addFilterBefore(cookieCsrfOriginGuardFilter, UsernamePasswordAuthenticationFilter.class)
+			.addFilterBefore(internalEndpointAccessFilter, UsernamePasswordAuthenticationFilter.class)
 			.addFilterBefore(platformSecurityServletFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
+	}
+
+	private String[] protectedRequestMatchers() {
+		return new String[] {
+			"/auth/me",
+			"/auth/session"
+		};
 	}
 
 	private String[] publicRequestMatchers() {
@@ -98,7 +118,6 @@ public class SecurityConfig {
 			"/",
 			"/.well-known/**",
 			"/error",
-			"/internal/auth/**",
 			"/auth/login",
 			"/auth/refresh",
 			"/auth/logout",
@@ -107,8 +126,6 @@ public class SecurityConfig {
 			"/auth/login/github",
 			"/auth/oauth2/authorize/github",
 			"/auth/exchange",
-			"/auth/me",
-			"/auth/internal/session/validate",
 			"/oauth2/**",
 			"/login/oauth2/**",
 			"/actuator/health",
@@ -127,11 +144,27 @@ public class SecurityConfig {
 		return matchers.toArray(String[]::new);
 	}
 
+	private String[] internalPassThroughRequestMatchers() {
+		return new String[] {
+			"/auth/internal/**",
+			"/internal/**"
+		};
+	}
+
 	@Bean
-	public FilterRegistrationBean<Filter> platformSecurityServletFilterRegistration(
-		@Qualifier("securityServletFilter") Filter platformSecurityServletFilter
+	public FilterRegistrationBean<InternalEndpointAccessFilter> internalEndpointAccessFilterRegistration(
+		InternalEndpointAccessFilter internalEndpointAccessFilter
 	) {
-		FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(platformSecurityServletFilter);
+		FilterRegistrationBean<InternalEndpointAccessFilter> registration = new FilterRegistrationBean<>(internalEndpointAccessFilter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
+	public FilterRegistrationBean<CookieCsrfOriginGuardFilter> cookieCsrfOriginGuardFilterRegistration(
+		CookieCsrfOriginGuardFilter cookieCsrfOriginGuardFilter
+	) {
+		FilterRegistrationBean<CookieCsrfOriginGuardFilter> registration = new FilterRegistrationBean<>(cookieCsrfOriginGuardFilter);
 		registration.setEnabled(false);
 		return registration;
 	}

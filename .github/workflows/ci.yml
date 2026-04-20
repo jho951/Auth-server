@@ -1,37 +1,61 @@
-name: Java CI with Gradle
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - develop
+      - "feature/**"
+      - "fix/**"
+      - "refactor/**"
+      - "chore/**"
   pull_request:
-    branches: [ "main" ]
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
+    timeout-minutes: 20
 
     env:
       GITHUB_ACTOR: ${{ github.actor }}
-      GITHUB_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Grant execute permission for Gradle
+        run: chmod +x ./gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build
+      - name: Build and test
+        run: ./gradlew --no-daemon clean build
 
-      - name: Run tests
-        run: ./gradlew test
+      - name: Validate Docker Compose files
+        run: |
+          touch "$RUNNER_TEMP/auth-empty.env"
+          AUTH_ENV_FILE="$RUNNER_TEMP/auth-empty.env" docker compose -f docker/dev/compose.yml config >/tmp/auth-dev.yml
+          AUTH_ENV_FILE="$RUNNER_TEMP/auth-empty.env" docker compose -f docker/prod/compose.yml config >/tmp/auth-prod.yml
+
+      - name: Validate Docker image build
+        run: |
+          docker build \
+            -f docker/Dockerfile \
+            --build-arg GITHUB_ACTOR="${GITHUB_ACTOR}" \
+            --build-arg GH_TOKEN="${GH_TOKEN}" \
+            -t "auth-service-ci:${GITHUB_SHA}" \
+            .

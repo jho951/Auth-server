@@ -21,7 +21,7 @@ spring:
 
 internal:
   api:
-    key: ${INTERNAL_API_KEY:local-internal-api-key}
+    key: ${INTERNAL_API_KEY:}
 
 user-service:
   base-url: ${USER_SERVICE_BASE_URL:}
@@ -140,8 +140,10 @@ platform:
     ip-guard:
       enabled: true
       trust-proxy: true
-      admin-allow-cidrs: ${PLATFORM_SECURITY_ADMIN_ALLOW_CIDRS:${PLATFORM_SECURITY_ADMIN_ALLOW_CIDR:10.0.0.0/8}}
-      internal-allow-cidrs: ${PLATFORM_SECURITY_INTERNAL_ALLOW_CIDRS:${PLATFORM_SECURITY_INTERNAL_ALLOW_CIDR:172.16.0.0/12}}
+      admin:
+        rules: ${PLATFORM_SECURITY_ADMIN_ALLOW_CIDRS:${PLATFORM_SECURITY_ADMIN_ALLOW_CIDR:10.0.0.0/8}}
+      internal:
+        rules: ${PLATFORM_SECURITY_INTERNAL_ALLOW_CIDRS:${PLATFORM_SECURITY_INTERNAL_ALLOW_CIDR:172.16.0.0/12}}
     rate-limit:
       enabled: true
       anonymous:

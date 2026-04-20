@@ -1,5 +1,4 @@
 auth:
-  endpoints-enabled: false
   user-cache-ttl-seconds: ${AUTH_USER_CACHE_TTL_SECONDS:300}
   bearer-prefix: "Bearer "
   refresh-cookie-enabled: true
@@ -8,7 +7,6 @@ auth:
   refresh-cookie-secure: ${AUTH_REFRESH_COOKIE_SECURE:false}
   refresh-cookie-path: /
   refresh-cookie-same-site: Lax
-  auto-security: false
   oauth2:
     enabled: false
     authorization-base-uri: /oauth2/authorization
@@ -20,6 +18,10 @@ auth:
 
 AUTH_ACCESS_COOKIE_SECURE: false
 AUTH_ACCESS_COOKIE_SAME_SITE: Lax
+
+internal:
+  api:
+    key: ${INTERNAL_API_KEY:local-internal-api-key}
 
 spring:
   security:

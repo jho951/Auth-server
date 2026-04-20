@@ -1,4 +1,4 @@
-package com.authservice.app.common.web;
+package com.authservice.app.config.status;
 
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;

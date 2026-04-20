@@ -1,0 +1,218 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Optional image tag. Defaults to tag name or sha-<commit>."
+        required: false
+        type: string
+      wait_for_deployment:
+        description: "Wait for CodeDeploy deployment to finish."
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+  packages: read
+
+concurrency:
+  group: cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-2' }}
+  ECR_REPOSITORY_NAME: ${{ vars.ECR_REPOSITORY_NAME || 'prod-auth-server' }}
+  ECS_CLUSTER_NAME: ${{ vars.ECS_CLUSTER_NAME || 'prod-auth-server-cluster' }}
+  ECS_SERVICE_NAME: ${{ vars.ECS_SERVICE_NAME || 'prod-auth-server' }}
+  ECS_CONTAINER_NAME: ${{ vars.ECS_CONTAINER_NAME || 'auth-service' }}
+  ECS_CONTAINER_PORT: ${{ vars.ECS_CONTAINER_PORT || '8081' }}
+  CODEDEPLOY_APPLICATION_NAME: ${{ vars.CODEDEPLOY_APPLICATION_NAME || 'prod-auth-server-codedeploy' }}
+  CODEDEPLOY_DEPLOYMENT_GROUP_NAME: ${{ vars.CODEDEPLOY_DEPLOYMENT_GROUP_NAME || 'prod-auth-server-blue-green' }}
+  GITHUB_ACTOR: ${{ github.actor }}
+  GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Grant execute permission for Gradle
+        run: chmod +x ./gradlew
+
+      - name: Test
+        run: ./gradlew --no-daemon clean test
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve image tags
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          short_sha="${GITHUB_SHA::12}"
+          requested_tag="${{ github.event.inputs.image_tag || '' }}"
+
+          if [[ -n "$requested_tag" ]]; then
+            image_tag="$requested_tag"
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            image_tag="${GITHUB_REF_NAME}"
+          else
+            image_tag="sha-${short_sha}"
+          fi
+
+          image_uri="${{ steps.ecr-login.outputs.registry }}/${ECR_REPOSITORY_NAME}:${image_tag}"
+          latest_uri="${{ steps.ecr-login.outputs.registry }}/${ECR_REPOSITORY_NAME}:latest"
+
+          {
+            echo "tag=${image_tag}"
+            echo "uri=${image_uri}"
+            echo "latest_uri=${latest_uri}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f docker/Dockerfile \
+            --build-arg GITHUB_ACTOR="${GITHUB_ACTOR}" \
+            --build-arg GH_TOKEN="${GH_TOKEN}" \
+            -t "${{ steps.image.outputs.uri }}" \
+            .
+
+      - name: Push Docker image
+        run: docker push "${{ steps.image.outputs.uri }}"
+
+      - name: Push latest tag for main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker tag "${{ steps.image.outputs.uri }}" "${{ steps.image.outputs.latest_uri }}"
+          docker push "${{ steps.image.outputs.latest_uri }}"
+
+      - name: Register ECS task definition
+        id: task-def
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current_task_definition="$(
+            aws ecs describe-services \
+              --cluster "${ECS_CLUSTER_NAME}" \
+              --services "${ECS_SERVICE_NAME}" \
+              --query 'services[0].taskDefinition' \
+              --output text
+          )"
+
+          if [[ -z "$current_task_definition" || "$current_task_definition" == "None" ]]; then
+            echo "Unable to resolve current task definition for ${ECS_CLUSTER_NAME}/${ECS_SERVICE_NAME}" >&2
+            exit 1
+          fi
+
+          aws ecs describe-task-definition \
+            --task-definition "$current_task_definition" \
+            --query 'taskDefinition' \
+            > task-definition-current.json
+
+          jq \
+            --arg container "${ECS_CONTAINER_NAME}" \
+            --arg image "${{ steps.image.outputs.uri }}" \
+            '
+              .containerDefinitions |= map(
+                if .name == $container then .image = $image else . end
+              )
+              | del(
+                  .taskDefinitionArn,
+                  .revision,
+                  .status,
+                  .requiresAttributes,
+                  .compatibilities,
+                  .registeredAt,
+                  .registeredBy
+                )
+            ' \
+            task-definition-current.json \
+            > task-definition-next.json
+
+          new_task_definition="$(
+            aws ecs register-task-definition \
+              --cli-input-json file://task-definition-next.json \
+              --query 'taskDefinition.taskDefinitionArn' \
+              --output text
+          )"
+
+          echo "arn=${new_task_definition}" >> "$GITHUB_OUTPUT"
+
+      - name: Create CodeDeploy deployment
+        id: codedeploy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > appspec.yml <<EOF
+          version: 0.0
+          Resources:
+            - TargetService:
+                Type: AWS::ECS::Service
+                Properties:
+                  TaskDefinition: "${{ steps.task-def.outputs.arn }}"
+                  LoadBalancerInfo:
+                    ContainerName: "${ECS_CONTAINER_NAME}"
+                    ContainerPort: ${ECS_CONTAINER_PORT}
+          EOF
+
+          jq -n \
+            --arg applicationName "${CODEDEPLOY_APPLICATION_NAME}" \
+            --arg deploymentGroupName "${CODEDEPLOY_DEPLOYMENT_GROUP_NAME}" \
+            --rawfile appspec appspec.yml \
+            '{
+              applicationName: $applicationName,
+              deploymentGroupName: $deploymentGroupName,
+              revision: {
+                revisionType: "AppSpecContent",
+                appSpecContent: {
+                  content: $appspec
+                }
+              },
+              description: "Auth-server deploy \($ENV.GITHUB_SHA)"
+            }' \
+            > create-deployment.json
+
+          deployment_id="$(
+            aws deploy create-deployment \
+              --cli-input-json file://create-deployment.json \
+              --query 'deploymentId' \
+              --output text
+          )"
+
+          echo "id=${deployment_id}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for deployment
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.wait_for_deployment }}
+        run: aws deploy wait deployment-successful --deployment-id "${{ steps.codedeploy.outputs.id }}"

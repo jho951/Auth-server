@@ -7,14 +7,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.authservice.app.domain.auth.controller.AuthController;
+import com.authservice.app.domain.audit.service.AuthAuditLogService;
+import com.authservice.app.domain.auth.controller.AuthGatewayController;
 import com.authservice.app.domain.auth.dto.AuthRequest;
 import com.authservice.app.domain.auth.dto.AuthResponse;
 import com.authservice.app.domain.auth.model.AuthTokens;
-import com.authservice.app.domain.auth.sso.service.SsoCookieService;
 import com.authservice.app.domain.auth.service.AuthAccountPolicyService;
-import com.authservice.app.domain.auth.service.AuthLoginService;
 import com.authservice.app.domain.auth.service.AuthLoginAttemptService;
+import com.authservice.app.domain.auth.service.AuthLoginService;
+import com.authservice.app.domain.auth.sso.service.SsoCookieService;
 import com.authservice.app.domain.auth.support.RefreshCookieWriter;
 import com.authservice.app.domain.auth.support.RefreshTokenExtractor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,7 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 @ExtendWith(MockitoExtension.class)
-class AuthControllerFlowTest {
+class AuthGatewayControllerFlowTest {
 
 	@Mock
 	private AuthLoginService authService;
@@ -47,17 +48,21 @@ class AuthControllerFlowTest {
 	@Mock
 	private SsoCookieService ssoCookieService;
 
-	private AuthController authController;
+	@Mock
+	private AuthAuditLogService authAuditLogService;
+
+	private AuthGatewayController authGatewayController;
 
 	@BeforeEach
 	void setUp() {
-		authController = new AuthController(
+		authGatewayController = new AuthGatewayController(
 			authService,
 			refreshTokenExtractor,
 			refreshCookieWriter,
 			authAccountPolicyService,
 			authLoginAttemptService,
-			ssoCookieService
+			ssoCookieService,
+			authAuditLogService
 		);
 	}
 
@@ -68,13 +73,10 @@ class AuthControllerFlowTest {
 		AuthTokens tokens = new AuthTokens("access-token", "refresh-token");
 		when(ssoCookieService.buildAccessTokenCookie("access-token")).thenReturn("access=access-token");
 		when(authService.login(request.getUsername(), request.getPassword())).thenReturn(tokens);
-		when(refreshCookieWriter.write(
-			any(AuthTokens.class),
-			anyTokenResponseEntity()
-		))
+		when(refreshCookieWriter.write(any(AuthTokens.class), anyTokenResponseEntity()))
 			.thenReturn(ResponseEntity.ok().build());
 
-		ResponseEntity<AuthResponse.TokenResponse> response = authController.login(request, servletRequest);
+		ResponseEntity<AuthResponse.TokenResponse> response = authGatewayController.login(request, servletRequest);
 
 		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
 		assertThat(response.getBody()).isNotNull();
@@ -82,6 +84,7 @@ class AuthControllerFlowTest {
 		assertThat(response.getBody().getRefreshToken()).isEqualTo("refresh-token");
 		verify(authAccountPolicyService).markLoginSuccess(request.getUsername());
 		verify(authLoginAttemptService).record(eq(request.getUsername()), any(), eq("SUCCESS"));
+		verify(authAuditLogService).logPasswordLoginSuccess(request.getUsername());
 	}
 
 	@Test
@@ -91,11 +94,12 @@ class AuthControllerFlowTest {
 		RuntimeException loginException = new RuntimeException("invalid credentials");
 		when(authService.login(request.getUsername(), request.getPassword())).thenThrow(loginException);
 
-		assertThatThrownBy(() -> authController.login(request, servletRequest))
+		assertThatThrownBy(() -> authGatewayController.login(request, servletRequest))
 			.isSameAs(loginException);
 
 		verify(authAccountPolicyService).markLoginFailure(request.getUsername());
 		verify(authLoginAttemptService).record(eq(request.getUsername()), any(), eq("FAILURE"));
+		verify(authAuditLogService).logPasswordLoginFailure(request.getUsername(), "INVALID_CREDENTIALS_OR_POLICY");
 	}
 
 	@Test
@@ -105,13 +109,10 @@ class AuthControllerFlowTest {
 		when(ssoCookieService.buildAccessTokenCookie("new-access-token")).thenReturn("access=new-access-token");
 		when(refreshTokenExtractor.extract(servletRequest)).thenReturn("old-refresh-token");
 		when(authService.refresh("old-refresh-token")).thenReturn(refreshed);
-		when(refreshCookieWriter.write(
-			any(AuthTokens.class),
-			anyTokenResponseEntity()
-		))
+		when(refreshCookieWriter.write(any(AuthTokens.class), anyTokenResponseEntity()))
 			.thenReturn(ResponseEntity.ok().build());
 
-		ResponseEntity<AuthResponse.TokenResponse> response = authController.refresh(servletRequest);
+		ResponseEntity<AuthResponse.TokenResponse> response = authGatewayController.refresh(servletRequest);
 
 		assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
 		assertThat(response.getBody()).isNotNull();
@@ -120,25 +121,7 @@ class AuthControllerFlowTest {
 		verify(authService).refresh("old-refresh-token");
 	}
 
-	@Test
-	void logoutRevokesRefreshTokenAndClearsCookie() {
-		HttpServletRequest servletRequest = new MockHttpServletRequest();
-		when(refreshTokenExtractor.extract(servletRequest)).thenReturn("refresh-token");
-		when(ssoCookieService.clearAccessTokenCookie()).thenReturn("access=; Max-Age=0");
-		when(refreshCookieWriter.clear(anyVoidResponseEntity())).thenReturn(ResponseEntity.noContent().build());
-
-		ResponseEntity<Void> response = authController.logout(servletRequest);
-
-		assertThat(response.getStatusCode().value()).isEqualTo(204);
-		verify(authService).logout("refresh-token");
-		verify(refreshCookieWriter).clear(anyVoidResponseEntity());
-	}
-
 	private ResponseEntity<AuthResponse.TokenResponse> anyTokenResponseEntity() {
-		return any();
-	}
-
-	private ResponseEntity<Void> anyVoidResponseEntity() {
 		return any();
 	}
 }

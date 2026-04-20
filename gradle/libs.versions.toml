@@ -2,19 +2,20 @@
 spring-boot = "3.5.13"
 spring-dependency-management = "1.1.6"
 springdoc = "2.8.14"
+jakarta-persistence = "3.1.0"
+lombok = "1.18.34"
 junit-jupiter = "5.12.2"
 junit-platform = "1.12.2"
-platform-governance = "2.0.0"
-platform-security = "2.0.0"
-platform-integrations = "1.0.0"
-auth = "3.0.1"
-ip-guard = "3.0.0"
+platform-governance = "2.0.1"
+platform-security = "2.0.3"
+platform-integrations = "1.0.1"
 
 [libraries]
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
+jakarta-persistence-api = { module = "jakarta.persistence:jakarta.persistence-api", version.ref = "jakarta-persistence" }
 h2 = { module = "com.h2database:h2" }
 lettuce-core = { module = "io.lettuce:lettuce-core" }
-lombok = { module = "org.projectlombok:lombok" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 mysql-connector = { module = "com.mysql:mysql-connector-j" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
@@ -23,13 +24,7 @@ platform-governance-bom = { module = "io.github.jho951.platform:platform-governa
 platform-governance-starter = { module = "io.github.jho951.platform:platform-governance-starter" }
 platform-security-bom = { module = "io.github.jho951.platform:platform-security-bom", version.ref = "platform-security" }
 platform-security-starter = { module = "io.github.jho951.platform:platform-security-starter", version.ref = "platform-security" }
-platform-security-auth = { module = "io.github.jho951.platform:platform-security-auth" }
-platform-security-test-support = { module = "io.github.jho951.platform:platform-security-test-support", version.ref = "platform-security" }
 platform-security-governance-bridge = { module = "io.github.jho951.platform:platform-security-governance-bridge", version.ref = "platform-integrations" }
-auth-core = { module = "io.github.jho951:auth-core", version.ref = "auth" }
-auth-session = { module = "io.github.jho951:auth-session", version.ref = "auth" }
-auth-hybrid = { module = "io.github.jho951:auth-hybrid", version.ref = "auth" }
-ip-guard-core = { module = "io.github.jho951:ip-guard-core", version.ref = "ip-guard" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

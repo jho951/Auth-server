@@ -7,10 +7,13 @@ services:
       dockerfile: docker/Dockerfile
       args:
         GITHUB_ACTOR: ${GITHUB_ACTOR:-}
-        GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+        GH_TOKEN: ${GH_TOKEN:-}
     env_file:
       - ${AUTH_ENV_FILE:-../../.env.prod}
     command: ["--spring.profiles.active=prod"]
+    restart: unless-stopped
+    ports:
+      - "${AUTH_SERVICE_HOST_BIND:?AUTH_SERVICE_HOST_BIND is required}:${AUTH_SERVICE_HOST_PORT:-8081}:8081"
     depends_on:
       auth-mysql:
         condition: service_healthy
@@ -20,6 +23,7 @@ services:
 
   auth-mysql:
     image: mysql:8.0
+    restart: unless-stopped
     env_file:
       - ${AUTH_ENV_FILE:-../../.env.prod}
     volumes:

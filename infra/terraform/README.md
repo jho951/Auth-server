@@ -70,6 +70,30 @@ CodeDeploy shifts traffic from the blue target group to the green target group u
 
 Rollback is handled by CodeDeploy auto rollback on deployment failure or stopped alarm. Manual rollback is a deployment using the previous task definition ARN.
 
+## GitHub Actions CD
+
+`.github/workflows/cd.yml` builds the service image, pushes it to Amazon ECR, registers a new ECS task definition revision, and creates a CodeDeploy ECS deployment.
+
+Required GitHub secret:
+
+- `AWS_ROLE_ARN`: IAM role assumed by GitHub OIDC
+- `GH_TOKEN`: GitHub Packages read token for private platform dependencies
+
+Required GitHub vars when Terraform defaults are changed:
+
+- `AWS_REGION`
+- `ECR_REPOSITORY_NAME`
+- `ECS_CLUSTER_NAME`
+- `ECS_SERVICE_NAME`
+- `ECS_CONTAINER_NAME`
+- `ECS_CONTAINER_PORT`
+- `CODEDEPLOY_APPLICATION_NAME`
+- `CODEDEPLOY_DEPLOYMENT_GROUP_NAME`
+
+The workflow defaults match this stack's default `prod-auth-server` resource names. If Terraform uses a remote backend, these values can be automated from outputs later. Until then, keep GitHub vars in sync with Terraform outputs.
+
+The assumed role needs permission to push to the service ECR repository, describe the current ECS service and task definition, register a new ECS task definition revision, pass the existing task and execution roles, and create/read CodeDeploy deployments.
+
 ## Notes
 
 - `terraform apply` changes infrastructure. It does not replace CodeDeploy as the release mechanism.

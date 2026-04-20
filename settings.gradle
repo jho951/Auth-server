@@ -1,7 +1,8 @@
 def githubPackagesUsername = providers.environmentVariable('GITHUB_ACTOR')
 	.orElse(providers.gradleProperty('githubPackagesUsername'))
 	.orElse(providers.gradleProperty('githubUsername'))
-def githubPackagesToken = providers.environmentVariable('GITHUB_TOKEN')
+	.orElse('jho951')
+def githubPackagesToken = providers.environmentVariable('GH_TOKEN')
 	.orElse(providers.gradleProperty('githubPackagesToken'))
 	.orElse(providers.gradleProperty('githubToken'))
 
@@ -23,6 +24,6 @@ dependencyResolutionManagement {
 	}
 }
 
-rootProject.name = 'Auth-server'
+rootProject.name = 'auth-service'
 include 'app'
 include 'common'

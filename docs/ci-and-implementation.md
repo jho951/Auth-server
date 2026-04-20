@@ -63,15 +63,15 @@ Repository는 `settings.gradle`의 `dependencyResolutionManagement`에서 중앙
 - GitHub Packages: `https://maven.pkg.github.com/jho951/platform-integrations`
 
 `platform-governance`, `platform-security`, `platform-integrations`는 private package이므로 인증값이 필요합니다.
-현재 기준 버전은 `platform-governance` `2.0.0`이며, `gradle/libs.versions.toml`에서 중앙 관리합니다.
-현재 기준 버전은 `platform-security` `2.0.0`이며, `gradle/libs.versions.toml`에서 중앙 관리합니다.
-현재 기준 버전은 `platform-integrations` `1.0.0`이며, `gradle/libs.versions.toml`에서 중앙 관리합니다.
+현재 기준 버전은 `platform-governance` `2.0.1`이며, `gradle/libs.versions.toml`에서 중앙 관리합니다.
+현재 기준 버전은 `platform-security` `2.0.3`이며, `gradle/libs.versions.toml`에서 중앙 관리합니다.
+현재 기준 버전은 `platform-integrations` `1.0.1`이며, `gradle/libs.versions.toml`에서 중앙 관리합니다.
 
 로컬 shell:
 
 ```bash
 export GITHUB_ACTOR=your-github-id
-export GITHUB_TOKEN=your-package-read-token
+export GH_TOKEN=your-package-read-token
 ```
 
 또는 `~/.gradle/gradle.properties`:
@@ -88,10 +88,10 @@ CI:
 ```yaml
 env:
   GITHUB_ACTOR: ${{ github.actor }}
-  GITHUB_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
+  GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
 ```
 
-`GH_PACKAGES_TOKEN`에는 `platform-governance`, `platform-security`, `platform-integrations` package read 권한이 필요합니다.
+`GH_TOKEN`에는 `platform-governance`, `platform-security`, `platform-integrations` package read 권한이 필요합니다.
 
 ## CI workflow
 
@@ -99,7 +99,9 @@ env:
 
 | workflow | 파일 | 실행 조건 | 주요 명령 |
 | --- | --- | --- | --- |
-| Java CI with Gradle | `.github/workflows/ci.yml` | `main` push/PR | `./gradlew build`, `./gradlew test` |
+| CI | `.github/workflows/ci.yml` | branch push/PR | `./gradlew clean build`, Docker Compose config, Docker image build |
+| CD | `.github/workflows/cd.yml` | `main` push, `v*` tag, manual dispatch | test, ECR image push, ECS task definition registration, CodeDeploy deployment |
+| contract-check | `.github/workflows/contract-check.yml` | PR | contract impact check |
 | CodeQL | GitHub default setup | repository security setting | CodeQL analyze |
 
 CI 공통 기준:
@@ -110,6 +112,42 @@ CI 공통 기준:
 - source 권한: `contents: read`
 
 CodeQL은 GitHub default setup을 사용합니다. Repository default setup과 advanced workflow를 동시에 켜면 SARIF 처리 충돌이 발생하므로 `.github/workflows/codeql.yml`을 별도로 두지 않습니다.
+
+## CD workflow
+
+CD는 Terraform이 만든 ECS/Fargate Blue/Green 인프라에 새 이미지를 배포합니다.
+
+흐름:
+
+1. `./gradlew --no-daemon clean test`
+2. Docker image build
+3. Amazon ECR push
+4. 현재 ECS service task definition 조회
+5. container image만 새 ECR image URI로 바꾼 task definition revision 등록
+6. CodeDeploy ECS deployment 생성
+7. 기본값으로 deployment 성공까지 wait
+
+GitHub secret:
+
+| 이름 | 필수 | 설명 |
+| --- | --- | --- |
+| `AWS_ROLE_ARN` | yes | GitHub OIDC가 assume할 AWS IAM role ARN |
+| `GH_TOKEN` | yes | Docker build 중 private GitHub Packages read 권한 |
+
+GitHub repository/environment vars:
+
+| 이름 | 기본값 | 설명 |
+| --- | --- | --- |
+| `AWS_REGION` | `ap-northeast-2` | AWS region |
+| `ECR_REPOSITORY_NAME` | `prod-auth-server` | Terraform ECR repository name |
+| `ECS_CLUSTER_NAME` | `prod-auth-server-cluster` | ECS cluster name |
+| `ECS_SERVICE_NAME` | `prod-auth-server` | ECS service name |
+| `ECS_CONTAINER_NAME` | `auth-service` | ECS task container name |
+| `ECS_CONTAINER_PORT` | `8081` | AppSpec container port |
+| `CODEDEPLOY_APPLICATION_NAME` | `prod-auth-server-codedeploy` | CodeDeploy application |
+| `CODEDEPLOY_DEPLOYMENT_GROUP_NAME` | `prod-auth-server-blue-green` | CodeDeploy deployment group |
+
+기본값은 `infra/terraform`의 기본 `environment=prod`, `service_name=auth-server`, `service_runtime_name=auth-service` 조합과 맞춥니다. Terraform 값을 바꾸면 GitHub vars도 같이 바꿉니다.
 
 ## 로컬 검증
 
@@ -129,7 +167,6 @@ CodeQL은 GitHub default setup을 사용합니다. Repository default setup과 a
 로컬 실행:
 
 ```bash
-cp docs/examples/env.local.example .env.local
 ./scripts/run.local.sh
 ```
 
@@ -140,6 +177,8 @@ Docker image build는 Dockerfile 내부에서 아래를 실행합니다.
 ```bash
 ./gradlew :app:build --no-daemon -x test
 ```
+
+Docker image의 기본 `SPRING_PROFILES_ACTIVE`는 `dev`입니다. ECS 배포에서는 Terraform task definition의 `SPRING_PROFILES_ACTIVE` 환경 변수가 이 값을 덮어써야 하며, prod 기본값은 `prod`입니다.
 
 ## 구현 규칙
 
@@ -174,6 +213,6 @@ Docker 실행 기준은 [docker.md](./docker.md)를 따릅니다.
 2. 새 dependency는 `gradle/libs.versions.toml` 관리가 필요한지 확인합니다.
 3. private dependency가 추가되면 CI secret과 Docker build arg 영향도 확인합니다.
 4. public API 변경이면 `docs/openapi/auth-service.yml`을 같이 갱신합니다.
-5. DB 변경이면 `db/schema.sql` 변경인지 운영 migration이 필요한 변경인지 먼저 구분합니다.
+5. DB 변경이면 `db/schema.sql` 기준이 코드와 일치하는지 먼저 확인합니다.
 6. Docker runtime 값이 바뀌면 `.env.dev`, `.env.prod`, `docker/{dev,prod}/compose.yml`, [docker.md](./docker.md)를 같이 갱신합니다.
 7. 최소 `./gradlew test` 또는 변경 범위에 맞는 Gradle task를 실행합니다.

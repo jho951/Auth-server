@@ -110,6 +110,7 @@ Rules:
 ### `POST /auth/refresh`
 
 refresh token으로 새 token pair를 발급한다.
+cookie 기반 refresh 요청은 `Origin` 또는 `Referer`가 등록된 frontend origin과 일치해야 한다.
 
 | 항목 | 값 |
 | --- | --- |
@@ -123,6 +124,7 @@ refresh token으로 새 token pair를 발급한다.
 ### `POST /auth/logout`
 
 현재 인증 세션을 종료한다.
+cookie 기반 logout 요청은 `Origin` 또는 `Referer`가 등록된 frontend origin과 일치해야 한다.
 
 | 항목 | 값 |
 | --- | --- |
@@ -234,6 +236,7 @@ Gateway가 내부 사용자 컨텍스트를 만들기 위해 호출한다.
 | --- | --- |
 | Caller | Gateway |
 | Input | cookie session 또는 JWT authentication context |
+| Caller proof | `X-Internal-Request-Secret` 또는 `Authorization: Bearer <internal-key>` |
 | Success | `200 SessionValidation` |
 | Failure | `401 SessionValidation(authenticated=false)` |
 
@@ -279,6 +282,7 @@ Response:
 ### `POST /internal/auth/accounts`
 
 User-service가 사용자 생성 이후 Auth-service 계정을 만들 때 호출한다.
+요청은 internal route로 분류되며 `X-Internal-Request-Secret` 또는 `Authorization: Bearer <internal-key>`가 필요하다.
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
@@ -315,6 +319,7 @@ Response:
 ### `DELETE /internal/auth/accounts/{userId}`
 
 User-service 계정 삭제 또는 rollback 시 Auth-service 계정을 제거한다.
+요청은 internal route로 분류되며 `X-Internal-Request-Secret` 또는 `Authorization: Bearer <internal-key>`가 필요하다.
 
 | Path variable | Type | Description |
 | --- | --- | --- |

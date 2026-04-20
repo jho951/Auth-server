@@ -276,9 +276,14 @@ paths:
       summary: 현재 auth session 검증
       operationId: validateInternalSession
       security:
-        - bearerAuth: []
-        - accessTokenCookie: []
-        - ssoSessionCookie: []
+        - internalApiKey: []
+          bearerAuth: []
+        - internalApiKey: []
+          accessTokenCookie: []
+        - internalApiKey: []
+          ssoSessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/InternalSecret'
       responses:
         '200':
           description: session 검증 결과입니다.
@@ -410,7 +415,7 @@ components:
     internalApiKey:
       type: apiKey
       in: header
-      name: X-Internal-Secret
+      name: X-Internal-Request-Secret
 
   parameters:
     Page:
@@ -430,7 +435,7 @@ components:
         format: uri
       description: 등록된 frontend redirect URI입니다.
     InternalSecret:
-      name: X-Internal-Secret
+      name: X-Internal-Request-Secret
       in: header
       required: false
       schema:

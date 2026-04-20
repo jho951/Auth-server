@@ -1,6 +1,6 @@
 package com.authservice.app.domain.auth.entity;
 
-import com.authservice.app.domain.auth.support.Uuid32;
+import com.authservice.app.domain.auth.support.UuidString;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -20,7 +20,7 @@ public class AuthLoginAttempt {
 
 	@Id
 	@Getter(AccessLevel.NONE)
-	@Column(name = "id", nullable = false, updatable = false, length = 32, columnDefinition = "char(32)")
+	@Column(name = "id", nullable = false, updatable = false, length = 36, columnDefinition = "char(36)")
 	private String id;
 
 	@Column(name = "login_id", nullable = false)
@@ -42,13 +42,13 @@ public class AuthLoginAttempt {
 	}
 
 	public UUID getId() {
-		return Uuid32.toUuid(id);
+		return UuidString.toUuid(id);
 	}
 
 	@PrePersist
 	void onCreate() {
 		if (id == null) {
-			id = Uuid32.generate();
+			id = UuidString.generate();
 		}
 		attemptedAt = LocalDateTime.now();
 	}

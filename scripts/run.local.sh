@@ -16,7 +16,7 @@ ENV_FILE="$PROJECT_ROOT/.env.$ENV"
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Source env file not found: $ENV_FILE"
   if [[ "$ENV" == "local" ]]; then
-    echo "Create .env.local from docs/examples/env.local.example before running locally."
+    echo "Create .env.local before running locally."
   fi
   exit 1
 fi

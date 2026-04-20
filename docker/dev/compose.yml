@@ -7,7 +7,7 @@ services:
       dockerfile: docker/Dockerfile
       args:
         GITHUB_ACTOR: ${GITHUB_ACTOR:-}
-        GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+        GH_TOKEN: ${GH_TOKEN:-}
     env_file:
       - ${AUTH_ENV_FILE:-../../.env.dev}
     environment:

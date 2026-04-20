@@ -3,9 +3,9 @@ FROM gradle:8.5-jdk17 AS build
 WORKDIR /app
 
 ARG GITHUB_ACTOR
-ARG GITHUB_TOKEN
+ARG GH_TOKEN
 ENV GITHUB_ACTOR=${GITHUB_ACTOR}
-ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+ENV GH_TOKEN=${GH_TOKEN}
 
 COPY gradle gradle
 COPY gradlew gradlew
@@ -25,5 +25,6 @@ WORKDIR /app
 
 COPY --from=build /app/app/build/libs/*.jar app.jar
 
+ENV SPRING_PROFILES_ACTIVE=dev
+
 ENTRYPOINT ["java", "-jar", "app.jar"]
-CMD ["--spring.profiles.active=dev"]

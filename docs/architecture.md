@@ -15,7 +15,7 @@
 |-------------|---------------------------------|-----------------------------------------------------------|------------------------------------|
 | `app`       | 실행 애플리케이션과 auth-service 업무 로직   | 인증, SSO, 세션, 토큰, 원격 user-service 연동, Spring Security 조립   | 여러 서비스가 공유해야 하는 범용 응답/예외/인프라       |
 | `common`    | 서비스 내부 공통 인프라                   | 공통 응답 모델, 공통 예외 처리, Redis/Swagger/로깅 설정                   | auth-service 도메인 규칙, 외부 서비스별 클라이언트 |
-| `db`        | DB baseline schema                  | 신규 DB 테이블 DDL, 필요 시 향후 운영 migration                    | 애플리케이션 코드                          |
+| `db`        | DB baseline schema                  | 신규 DB 테이블 DDL                                             | 애플리케이션 코드                          |
 | `docker`    | 컨테이너 실행 정의                      | auth-service Compose, Dockerfile, DB seed/config          | 로컬 shell orchestration             |
 | `scripts`   | 로컬/운영 보조 명령                     | Docker 실행 래퍼, 필요 시 DB 적용 스크립트                           | 서비스 런타임 로직                         |
 | `docs`      | 설계와 운영 문서                       | 구조, DB, 보안 플랫폼, OpenAPI                                   | 코드가 기준이어야 하는 구현 세부사항               |
@@ -31,7 +31,7 @@
 | `domain.auth.internal` | 내부 서비스 간 인증 API |
 | `domain.auth.sso` | OAuth/SSO 시작, callback, ticket exchange, SSO cookie/session |
 | `domain.auth.userdirectory` | user-service 원격 사용자 디렉토리 연동 |
-| `domain.auth.support` | auth 도메인 내부에서 재사용하는 HTTP/cookie/token/uuid32 helper |
+| `domain.auth.support` | auth 도메인 내부에서 재사용하는 HTTP/cookie/token/UUID helper |
 | `domain.audit` | auth-service 감사 이벤트 기록 어댑터 |
 | `security` | Spring Security와 `platform-security` 연결 |
 
@@ -62,7 +62,7 @@
 - cookie나 refresh token 추출 helper가 auth 전용이면 `domain.auth.support`에 둡니다.
 - 여러 도메인에서 재사용할 응답/예외/로깅 코드는 `common`에 둡니다.
 - 환경별 런타임 값은 `app/src/main/resources/{dev,prod}` 또는 루트 `.env.dev`/`.env.prod`에 둡니다.
-- 신규 DB baseline 변경은 `db/schema.sql`에 반영합니다. 운영 중인 테이블 변경이 필요해질 때만 `db/migrations`를 추가합니다.
+- 신규 DB baseline 변경은 `db/schema.sql`에 반영합니다.
 
 ## 테스트 배치
 

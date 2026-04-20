@@ -1,5 +1,7 @@
-package com.authservice.app.common.logging;
+package com.authservice.app.config.logging;
 
+import com.authservice.app.common.logging.LoggingHeaders;
+import com.authservice.app.common.logging.LoggingMdcKeys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -55,7 +57,7 @@ public class RequestMdcFilter extends OncePerRequestFilter {
 	private String resolveRequestId(HttpServletRequest request) {
 		String requestId = request.getHeader(LoggingHeaders.REQUEST_ID);
 		if (requestId == null) return UUID.randomUUID().toString();
-		if(requestId.isBlank()) return UUID.randomUUID().toString();
+		if (requestId.isBlank()) return UUID.randomUUID().toString();
 		return requestId;
 	}
 
