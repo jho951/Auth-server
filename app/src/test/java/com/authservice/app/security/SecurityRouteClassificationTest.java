@@ -24,6 +24,7 @@ class SecurityRouteClassificationTest {
 			org.mockito.Mockito.mock(SsoOAuth2SuccessHandler.class),
 			org.mockito.Mockito.mock(SsoOAuth2FailureHandler.class),
 			org.mockito.Mockito.mock(Filter.class),
+			org.mockito.Mockito.mock(PlatformSecurityRequestAttributeBridgeFilter.class),
 			org.mockito.Mockito.mock(InternalEndpointAccessFilter.class),
 			org.mockito.Mockito.mock(CookieCsrfOriginGuardFilter.class),
 			org.mockito.Mockito.mock(Environment.class)
@@ -35,15 +36,22 @@ class SecurityRouteClassificationTest {
 		String[] publicRoutes = ReflectionTestUtils.invokeMethod(securityConfig, "publicRequestMatchers");
 
 		assertThat(publicRoutes)
-			.contains("/auth/login", "/auth/refresh", "/auth/logout")
-			.doesNotContain("/auth/me", "/auth/internal/session/validate", "/internal/auth/**");
+			.contains(
+				"/auth/login",
+				"/auth/refresh",
+				"/auth/logout",
+				"/auth/me",
+				"/auth/session",
+				"/auth/internal/session/validate"
+			)
+			.doesNotContain("/internal/auth/**");
 	}
 
 	@Test
 	void classifiesProtectedRoutes() {
 		String[] protectedRoutes = ReflectionTestUtils.invokeMethod(securityConfig, "protectedRequestMatchers");
 
-		assertThat(protectedRoutes).containsExactly("/auth/me", "/auth/session");
+		assertThat(protectedRoutes).containsExactly("/api/**");
 	}
 
 	@Test

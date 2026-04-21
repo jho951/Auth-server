@@ -1,16 +1,16 @@
 services:
   auth-service:
     env_file:
-      - ${AUTH_ENV_FILE:-../.env.prod}
+      - ${AUTH_ENV_FILE:-../../.env.prod}
     command: ["--spring.profiles.active=prod"]
     restart: unless-stopped
-    ports:
-      - "${AUTH_SERVICE_HOST_BIND:?AUTH_SERVICE_HOST_BIND is required}:${AUTH_SERVICE_HOST_PORT:-8081}:8081"
+    expose:
+      - "8081"
 
   auth-mysql:
     restart: unless-stopped
     env_file:
-      - ${AUTH_ENV_FILE:-../.env.prod}
+      - ${AUTH_ENV_FILE:-../../.env.prod}
     volumes:
       - type: bind
         source: ./prod/services/mysql/my.cnf

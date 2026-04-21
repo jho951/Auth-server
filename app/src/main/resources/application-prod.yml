@@ -1,0 +1,8 @@
+platform:
+  governance:
+    audit:
+      environment: ${PLATFORM_GOVERNANCE_AUDIT_ENVIRONMENT:prod}
+    engine:
+      strict: true
+    violation:
+      handler-failure-fatal: true

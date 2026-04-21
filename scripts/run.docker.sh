@@ -115,11 +115,11 @@ if [[ "$ACTION" == "up" ]]; then
   SHARED_NETWORK="${SHARED_SERVICE_NETWORK:-${BACKEND_SHARED_NETWORK:-${SERVICE_SHARED_NETWORK:-service-backbone-shared}}}"
   ensure_network "$SHARED_NETWORK"
   AUTH_ENV_FILE="$COMPOSE_ENV_FILE" SHARED_SERVICE_NETWORK="$SHARED_NETWORK" BACKEND_SHARED_NETWORK="$SHARED_NETWORK" SERVICE_SHARED_NETWORK="$SHARED_NETWORK" \
-    docker compose -p "$COMPOSE_PROJECT_NAME" -f "$BASE_COMPOSE_FILE" -f "$ENV_COMPOSE_FILE" up --build -d
+    docker compose --env-file "$COMPOSE_ENV_FILE" -p "$COMPOSE_PROJECT_NAME" -f "$BASE_COMPOSE_FILE" -f "$ENV_COMPOSE_FILE" up --build -d
 else
   if [[ "$ENV" == "dev" ]]; then
-    AUTH_ENV_FILE="$COMPOSE_ENV_FILE" docker compose -p "$COMPOSE_PROJECT_NAME" -f "$BASE_COMPOSE_FILE" -f "$ENV_COMPOSE_FILE" down --remove-orphans -v
+    AUTH_ENV_FILE="$COMPOSE_ENV_FILE" docker compose --env-file "$COMPOSE_ENV_FILE" -p "$COMPOSE_PROJECT_NAME" -f "$BASE_COMPOSE_FILE" -f "$ENV_COMPOSE_FILE" down --remove-orphans -v
   else
-    AUTH_ENV_FILE="$COMPOSE_ENV_FILE" docker compose -p "$COMPOSE_PROJECT_NAME" -f "$BASE_COMPOSE_FILE" -f "$ENV_COMPOSE_FILE" down --remove-orphans
+    AUTH_ENV_FILE="$COMPOSE_ENV_FILE" docker compose --env-file "$COMPOSE_ENV_FILE" -p "$COMPOSE_PROJECT_NAME" -f "$BASE_COMPOSE_FILE" -f "$ENV_COMPOSE_FILE" down --remove-orphans
   fi
 fi

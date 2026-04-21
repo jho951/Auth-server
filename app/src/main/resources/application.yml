@@ -113,6 +113,9 @@ platform:
         - /auth/refresh
         - /auth/logout
         - /auth/sso/start
+        - /auth/session
+        - /auth/me
+        - /auth/internal/session/validate
         - /auth/oauth/github/callback
         - /auth/login/github
         - /auth/oauth2/authorize/github
@@ -120,14 +123,11 @@ platform:
         - /oauth2/**
         - /login/oauth2/**
       protected-paths:
-        - /auth/session
-        - /auth/me
         - /api/**
       admin-paths:
         - /admin/**
       internal-paths:
         - /internal/**
-        - /auth/internal/**
     auth:
       enabled: true
       default-mode: HYBRID
@@ -140,6 +140,7 @@ platform:
     ip-guard:
       enabled: true
       trust-proxy: true
+      trusted-proxy-cidrs: ${PLATFORM_SECURITY_TRUSTED_PROXY_CIDRS:10.0.0.0/8,172.16.0.0/12}
       admin:
         rules: ${PLATFORM_SECURITY_ADMIN_ALLOW_CIDRS:${PLATFORM_SECURITY_ADMIN_ALLOW_CIDR:10.0.0.0/8}}
       internal:

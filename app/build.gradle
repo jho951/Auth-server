@@ -29,6 +29,10 @@ dependencies {
     implementation platform(libs.platform.security.bom)
     implementation libs.platform.security.starter
     implementation libs.platform.security.governance.bridge
+    implementation "io.github.jho951:auth-core:3.0.1"
+    implementation "io.github.jho951:auth-session:3.0.1"
+    implementation "io.github.jho951:rate-limiter-core:2.0.0"
+    implementation "io.github.jho951:rate-limiter-spi:2.0.0"
     implementation "io.jsonwebtoken:jjwt-api:${jjwt_version}"
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwt_version}"

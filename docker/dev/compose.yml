@@ -1,7 +1,7 @@
 services:
   auth-service:
     env_file:
-      - ${AUTH_ENV_FILE:-../.env.dev}
+      - ${AUTH_ENV_FILE:-../../.env.dev}
     environment:
       SERVER_PORT: ${SERVER_PORT:-8081}
     expose:
@@ -10,7 +10,7 @@ services:
 
   auth-mysql:
     env_file:
-      - ${AUTH_ENV_FILE:-../.env.dev}
+      - ${AUTH_ENV_FILE:-../../.env.dev}
     volumes:
       - type: bind
         source: ./dev/services/mysql/my.cnf
