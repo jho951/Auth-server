@@ -21,8 +21,9 @@ public class RefreshCookieWriter {
 		ResponseCookie cookie = baseCookie(tokens.refreshToken())
 			.maxAge(properties.getJwt().getRefreshSeconds())
 			.build();
+		HttpHeaders headers = mutableHeaders(response.getHeaders());
 		return ResponseEntity.status(response.getStatusCode())
-			.headers(response.getHeaders())
+			.headers(headers)
 			.header(HttpHeaders.SET_COOKIE, cookie.toString())
 			.body(response.getBody());
 	}
@@ -34,10 +35,17 @@ public class RefreshCookieWriter {
 		ResponseCookie cookie = baseCookie("")
 			.maxAge(0)
 			.build();
+		HttpHeaders headers = mutableHeaders(response.getHeaders());
 		return ResponseEntity.status(response.getStatusCode())
-			.headers(response.getHeaders())
+			.headers(headers)
 			.header(HttpHeaders.SET_COOKIE, cookie.toString())
 			.build();
+	}
+
+	private static HttpHeaders mutableHeaders(HttpHeaders source) {
+		HttpHeaders headers = new HttpHeaders();
+		source.forEach((name, values) -> headers.put(name, new java.util.ArrayList<>(values)));
+		return headers;
 	}
 
 	private ResponseCookie.ResponseCookieBuilder baseCookie(String value) {
