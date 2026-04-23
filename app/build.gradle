@@ -24,10 +24,14 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation libs.springdoc.openapi
+    implementation "io.github.jho951:audit-log-api"
+    implementation platform(libs.platform.runtime.bom)
     implementation platform(libs.platform.governance.bom)
     implementation libs.platform.governance.starter
     implementation platform(libs.platform.security.bom)
     implementation libs.platform.security.starter
+    implementation libs.platform.security.auth.bridge.starter
+    implementation libs.platform.security.ratelimit.bridge.starter
     implementation libs.platform.security.governance.bridge
     implementation "io.github.jho951:auth-core:3.0.1"
     implementation "io.github.jho951:auth-session:3.0.1"
@@ -41,4 +45,5 @@ dependencies {
     testImplementation libs.junit.jupiter
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation "io.github.jho951.platform:platform-governance-adapter-auditlog"
 }

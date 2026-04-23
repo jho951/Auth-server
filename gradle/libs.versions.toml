@@ -6,9 +6,9 @@ jakarta-persistence = "3.1.0"
 lombok = "1.18.34"
 junit-jupiter = "5.12.2"
 junit-platform = "1.12.2"
-platform-governance = "2.0.2"
-platform-security = "2.0.5"
-platform-integrations = "1.0.3"
+platform-governance = "3.0.0"
+platform-security = "3.0.0"
+platform-integrations = "3.0.0"
 
 [libraries]
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
@@ -20,10 +20,13 @@ mysql-connector = { module = "com.mysql:mysql-connector-j" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 springdoc-openapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+platform-runtime-bom = { module = "io.github.jho951.platform:platform-runtime-bom", version.ref = "platform-integrations" }
 platform-governance-bom = { module = "io.github.jho951.platform:platform-governance-bom", version.ref = "platform-governance" }
 platform-governance-starter = { module = "io.github.jho951.platform:platform-governance-starter" }
 platform-security-bom = { module = "io.github.jho951.platform:platform-security-bom", version.ref = "platform-security" }
 platform-security-starter = { module = "io.github.jho951.platform:platform-security-starter", version.ref = "platform-security" }
+platform-security-auth-bridge-starter = { module = "io.github.jho951.platform:platform-security-auth-bridge-starter", version.ref = "platform-security" }
+platform-security-ratelimit-bridge-starter = { module = "io.github.jho951.platform:platform-security-ratelimit-bridge-starter", version.ref = "platform-security" }
 platform-security-governance-bridge = { module = "io.github.jho951.platform:platform-security-governance-bridge", version.ref = "platform-integrations" }
 
 [plugins]

@@ -34,7 +34,6 @@ public class SecurityConfig {
 	private final SsoOAuth2FailureHandler ssoOAuth2FailureHandler;
 	private final Filter platformSecurityServletFilter;
 	private final PlatformSecurityRequestAttributeBridgeFilter platformSecurityRequestAttributeBridgeFilter;
-	private final InternalEndpointAccessFilter internalEndpointAccessFilter;
 	private final CookieCsrfOriginGuardFilter cookieCsrfOriginGuardFilter;
 	private final Environment environment;
 
@@ -46,7 +45,6 @@ public class SecurityConfig {
 		SsoOAuth2FailureHandler ssoOAuth2FailureHandler,
 		@Qualifier("securityServletFilter") Filter platformSecurityServletFilter,
 		PlatformSecurityRequestAttributeBridgeFilter platformSecurityRequestAttributeBridgeFilter,
-		InternalEndpointAccessFilter internalEndpointAccessFilter,
 		CookieCsrfOriginGuardFilter cookieCsrfOriginGuardFilter,
 		Environment environment) {
 		this.entryPoint = entryPoint;
@@ -56,7 +54,6 @@ public class SecurityConfig {
 		this.ssoOAuth2FailureHandler = ssoOAuth2FailureHandler;
 		this.platformSecurityServletFilter = platformSecurityServletFilter;
 		this.platformSecurityRequestAttributeBridgeFilter = platformSecurityRequestAttributeBridgeFilter;
-		this.internalEndpointAccessFilter = internalEndpointAccessFilter;
 		this.cookieCsrfOriginGuardFilter = cookieCsrfOriginGuardFilter;
 		this.environment = environment;
 	}
@@ -82,8 +79,8 @@ public class SecurityConfig {
 				.requestMatchers(
 					publicRequestMatchers()
 				).permitAll()
-				// Internal endpoints are not public; this pass-through lets the platform
-				// boundary and InternalEndpointAccessFilter enforce internal caller proof.
+				// Internal endpoints are not public; this pass-through lets platform-security
+				// evaluate the boundary after request credential bridging.
 				.requestMatchers(
 					internalPassThroughRequestMatchers()
 				).permitAll()
@@ -104,7 +101,6 @@ public class SecurityConfig {
 			)
 			.addFilterBefore(platformSecurityRequestAttributeBridgeFilter, UsernamePasswordAuthenticationFilter.class)
 			.addFilterBefore(cookieCsrfOriginGuardFilter, UsernamePasswordAuthenticationFilter.class)
-			.addFilterBefore(internalEndpointAccessFilter, UsernamePasswordAuthenticationFilter.class)
 			.addFilterBefore(platformSecurityServletFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
@@ -155,15 +151,6 @@ public class SecurityConfig {
 			"/auth/internal/**",
 			"/internal/**"
 		};
-	}
-
-	@Bean
-	public FilterRegistrationBean<InternalEndpointAccessFilter> internalEndpointAccessFilterRegistration(
-		InternalEndpointAccessFilter internalEndpointAccessFilter
-	) {
-		FilterRegistrationBean<InternalEndpointAccessFilter> registration = new FilterRegistrationBean<>(internalEndpointAccessFilter);
-		registration.setEnabled(false);
-		return registration;
 	}
 
 	@Bean

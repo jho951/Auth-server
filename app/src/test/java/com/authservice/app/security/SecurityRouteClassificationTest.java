@@ -25,7 +25,6 @@ class SecurityRouteClassificationTest {
 			org.mockito.Mockito.mock(SsoOAuth2FailureHandler.class),
 			org.mockito.Mockito.mock(Filter.class),
 			org.mockito.Mockito.mock(PlatformSecurityRequestAttributeBridgeFilter.class),
-			org.mockito.Mockito.mock(InternalEndpointAccessFilter.class),
 			org.mockito.Mockito.mock(CookieCsrfOriginGuardFilter.class),
 			org.mockito.Mockito.mock(Environment.class)
 		);
