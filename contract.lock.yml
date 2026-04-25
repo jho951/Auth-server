@@ -17,7 +17,7 @@ service:
     - repositories/auth-service/**
     - repositories/user-service/**
     - artifacts/openapi/auth-service.upstream.v1.yaml
-    - artifacts/openapi/auth-public.gateway.v1.yaml
+    - artifacts/openapi/gateway-service.public.v1.yaml
 
 validation:
   contract_lock: true
