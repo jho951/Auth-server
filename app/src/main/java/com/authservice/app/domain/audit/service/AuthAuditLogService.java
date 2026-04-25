@@ -95,24 +95,30 @@ public class AuthAuditLogService {
 
 	private void record(String message, Map<String, String> attributes) {
 		LinkedHashMap<String, Object> details = new LinkedHashMap<>(attributes);
+		boolean failure = "FAILURE".equalsIgnoreCase(attributes.get("result"));
+		String reason = attributes.get("reason");
+		AuditEvent.Builder builder = AuditEvent.builder(resolveEventType(attributes.get("eventType")), message)
+			.occurredAt(Instant.now())
+			.actor(
+				stringOrUnknown(attributes.get("actorId")),
+				resolveActorType(attributes.get("actorType")),
+				stringOrUnknown(attributes.get("actorId"))
+			)
+			.resource(
+				stringOrUnknown(attributes.get("resourceType")),
+				stringOrUnknown(attributes.get("resourceId"))
+			)
+			.details(details)
+			.result(failure
+				? com.auditlog.api.AuditResult.FAILURE
+				: com.auditlog.api.AuditResult.SUCCESS);
+		if (failure) {
+			builder.reason(reasonOrDefault(reason));
+		} else if (reason != null && !reason.isBlank()) {
+			builder.reason(reason);
+		}
 		auditLogger.log(
-			AuditEvent.builder(resolveEventType(attributes.get("eventType")), message)
-				.occurredAt(Instant.now())
-				.actor(
-					stringOrUnknown(attributes.get("actorId")),
-					resolveActorType(attributes.get("actorType")),
-					stringOrUnknown(attributes.get("actorId"))
-				)
-				.resource(
-					stringOrUnknown(attributes.get("resourceType")),
-					stringOrUnknown(attributes.get("resourceId"))
-				)
-				.reason(reasonOrDefault(attributes.get("reason")))
-				.details(details)
-				.result("FAILURE".equalsIgnoreCase(attributes.get("result"))
-					? com.auditlog.api.AuditResult.FAILURE
-					: com.auditlog.api.AuditResult.SUCCESS)
-				.build()
+			builder.build()
 		);
 	}
 

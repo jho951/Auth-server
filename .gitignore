@@ -16,6 +16,7 @@ build/
 # secret
 .env*
 !.env.example
+!deploy/ec2/.env.production.example
 .envrc
 docker/.generated
 
