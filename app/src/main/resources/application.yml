@@ -73,7 +73,7 @@ platform:
         enabled: ${PLATFORM_GOVERNANCE_AUDIT_IDENTITY_ENABLED:true}
         validation-enabled: ${PLATFORM_GOVERNANCE_AUDIT_IDENTITY_VALIDATION_ENABLED:true}
         fail-on-validation-error: ${PLATFORM_GOVERNANCE_AUDIT_IDENTITY_FAIL_ON_VALIDATION_ERROR:true}
-    plugin-policy-engine:
+    policy-config:
       store: ${PLATFORM_GOVERNANCE_POLICY_ENGINE_STORE:MEMORY}
       file-path: ${PLATFORM_GOVERNANCE_POLICY_ENGINE_FILE_PATH:}
       cache-ttl-millis: ${PLATFORM_GOVERNANCE_POLICY_ENGINE_CACHE_TTL_MILLIS:3000}

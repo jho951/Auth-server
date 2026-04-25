@@ -1,16 +1,22 @@
 package com.authservice.app.security;
 
-import com.auth.api.model.Principal;
-import com.auth.session.SessionStore;
-import com.auth.spi.TokenService;
 import com.authservice.app.domain.auth.config.AuthHttpProperties;
 import com.authservice.app.domain.auth.model.AuthPrincipal;
 import com.authservice.app.domain.auth.sso.model.SsoStorePayloads.SsoSessionPayload;
 import com.authservice.app.domain.auth.sso.service.SsoSessionStore;
+import io.github.jho951.platform.security.auth.PlatformAuthenticatedPrincipal;
+import io.github.jho951.platform.security.auth.PlatformIssuedToken;
+import io.github.jho951.platform.security.auth.PlatformSessionIssuerPort;
+import io.github.jho951.platform.security.auth.PlatformSessionSupport;
+import io.github.jho951.platform.security.auth.PlatformSessionSupportFactory;
+import io.github.jho951.platform.security.auth.PlatformSessionView;
+import io.github.jho951.platform.security.auth.PlatformTokenIssuerPort;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,85 +24,78 @@ import org.springframework.context.annotation.Configuration;
 public class AuthPlatformIssuerAdaptersConfiguration {
 
     @Bean
-    public TokenService platformIssuerTokenService(AuthJwtTokenService tokenService) {
-        return new TokenService() {
-            @Override
-            public String issueAccessToken(Principal principal) {
-                return tokenService.issueAccessToken(toAuthPrincipal(principal));
-            }
-
-            @Override
-            public String issueRefreshToken(Principal principal) {
-                return tokenService.issueRefreshToken(toAuthPrincipal(principal));
-            }
-
-            @Override
-            public Principal verifyAccessToken(String token) {
-                return toPlatformPrincipal(tokenService.verifyAccessToken(token));
-            }
-
-            @Override
-            public Principal verifyRefreshToken(String token) {
-                return toPlatformPrincipal(tokenService.verifyRefreshToken(token));
-            }
+    public PlatformTokenIssuerPort platformTokenIssuerPort(AuthJwtTokenService tokenService) {
+        return command -> {
+            AuthPrincipal principal = toAuthPrincipal(command.principal());
+            return new PlatformIssuedToken(
+                tokenService.issueAccessToken(principal),
+                tokenService.issueRefreshToken(principal)
+            );
         };
     }
 
     @Bean
-    public SessionStore platformIssuerSessionStore(
+    public PlatformSessionIssuerPort platformSessionIssuerPort(
         SsoSessionStore sessionStore,
         AuthHttpProperties properties
     ) {
         Duration sessionTtl = Duration.ofSeconds(Math.max(1L, properties.getJwt().getRefreshSeconds()));
-        return new SessionStore() {
-            @Override
-            public void save(String sessionId, Principal principal) {
-                sessionStore.saveSession(
-                    sessionId,
-                    new SsoSessionPayload(
-                        principal.getUserId(),
-                        stringAttribute(principal.getAttributes(), "email"),
-                        stringAttribute(principal.getAttributes(), "name"),
-                        stringAttribute(principal.getAttributes(), "avatarUrl"),
-                        principal.getAuthorities(),
-                        stringAttribute(principal.getAttributes(), "status"),
-                        Instant.now().plus(sessionTtl)
-                    ),
-                    Instant.now().plus(sessionTtl)
-                );
-            }
-
-            @Override
-            public java.util.Optional<Principal> find(String sessionId) {
-                return sessionStore.findSession(sessionId).map(AuthPlatformIssuerAdaptersConfiguration::toPlatformPrincipal);
-            }
-
-            @Override
-            public void revoke(String sessionId) {
-                sessionStore.revokeSession(sessionId);
-            }
+        return command -> {
+            Instant expiresAt = Instant.now().plus(sessionTtl);
+            PlatformAuthenticatedPrincipal principal = command.principal();
+            String sessionId = UUID.randomUUID().toString();
+            sessionStore.saveSession(sessionId, toSessionPayload(principal, expiresAt), expiresAt);
+            return new PlatformSessionView(sessionId, principal);
         };
     }
 
-    private static AuthPrincipal toAuthPrincipal(Principal principal) {
+    @Bean
+    public PlatformSessionSupportFactory platformSessionSupportFactory(
+        AuthJwtTokenService tokenService,
+        SsoSessionStore sessionStore
+    ) {
+        return () -> new ServiceOwnedPlatformSessionSupport(tokenService, sessionStore);
+    }
+
+    private static AuthPrincipal toAuthPrincipal(PlatformAuthenticatedPrincipal principal) {
         return new AuthPrincipal(
-            principal.getUserId(),
-            principal.getAuthorities(),
-            principal.getAttributes()
+            principal.userId(),
+            principal.authorities().stream().toList(),
+            principal.attributes()
         );
     }
 
-    private static Principal toPlatformPrincipal(AuthPrincipal principal) {
-        return new Principal(principal.userId(), principal.roles(), principal.attributes());
+    private static PlatformAuthenticatedPrincipal toPlatformPrincipal(AuthPrincipal principal) {
+        return new PlatformAuthenticatedPrincipal(
+            principal.userId(),
+            new java.util.LinkedHashSet<>(principal.roles()),
+            principal.attributes()
+        );
     }
 
-    private static Principal toPlatformPrincipal(SsoSessionPayload payload) {
+    private static PlatformAuthenticatedPrincipal toPlatformPrincipal(SsoSessionPayload payload) {
         Map<String, Object> attributes = new LinkedHashMap<>();
         putIfPresent(attributes, "email", payload.getEmail());
         putIfPresent(attributes, "name", payload.getName());
         putIfPresent(attributes, "avatarUrl", payload.getAvatarUrl());
         putIfPresent(attributes, "status", payload.getStatus());
-        return new Principal(payload.getUserId(), payload.getRoles(), attributes);
+        return new PlatformAuthenticatedPrincipal(
+            payload.getUserId(),
+            new java.util.LinkedHashSet<>(payload.getRoles() == null ? java.util.List.of() : payload.getRoles()),
+            attributes
+        );
+    }
+
+    private static SsoSessionPayload toSessionPayload(PlatformAuthenticatedPrincipal principal, Instant expiresAt) {
+        return new SsoSessionPayload(
+            principal.userId(),
+            stringAttribute(principal.attributes(), "email"),
+            stringAttribute(principal.attributes(), "name"),
+            stringAttribute(principal.attributes(), "avatarUrl"),
+            principal.authorities().stream().toList(),
+            stringAttribute(principal.attributes(), "status"),
+            expiresAt
+        );
     }
 
     private static String stringAttribute(Map<String, Object> attributes, String key) {
@@ -110,6 +109,46 @@ public class AuthPlatformIssuerAdaptersConfiguration {
     private static void putIfPresent(Map<String, Object> attributes, String key, String value) {
         if (value != null && !value.isBlank()) {
             attributes.put(key, value);
+        }
+    }
+
+    private static final class ServiceOwnedPlatformSessionSupport implements PlatformSessionSupport {
+        private final AuthJwtTokenService tokenService;
+        private final SsoSessionStore sessionStore;
+
+        private ServiceOwnedPlatformSessionSupport(
+            AuthJwtTokenService tokenService,
+            SsoSessionStore sessionStore
+        ) {
+            this.tokenService = tokenService;
+            this.sessionStore = sessionStore;
+        }
+
+        @Override
+        public Optional<PlatformAuthenticatedPrincipal> authenticate(String accessToken, String sessionId) {
+            Optional<PlatformAuthenticatedPrincipal> tokenPrincipal = lookupAccessToken(accessToken);
+            if (tokenPrincipal.isPresent()) {
+                return tokenPrincipal;
+            }
+            return lookupSession(sessionId);
+        }
+
+        private Optional<PlatformAuthenticatedPrincipal> lookupAccessToken(String accessToken) {
+            if (accessToken == null || accessToken.isBlank()) {
+                return Optional.empty();
+            }
+            try {
+                return Optional.of(toPlatformPrincipal(tokenService.verifyAccessToken(accessToken)));
+            } catch (RuntimeException ex) {
+                return Optional.empty();
+            }
+        }
+
+        private Optional<PlatformAuthenticatedPrincipal> lookupSession(String sessionId) {
+            if (sessionId == null || sessionId.isBlank()) {
+                return Optional.empty();
+            }
+            return sessionStore.findSession(sessionId).map(AuthPlatformIssuerAdaptersConfiguration::toPlatformPrincipal);
         }
     }
 }

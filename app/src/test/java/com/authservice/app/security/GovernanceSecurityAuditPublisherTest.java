@@ -5,7 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import io.github.jho951.platform.governance.api.AuditEntry;
-import io.github.jho951.platform.governance.api.AuditLogRecorder;
+import io.github.jho951.platform.governance.api.GovernanceAuditRecorder;
 import io.github.jho951.platform.security.api.SecurityAuditEvent;
 import io.github.jho951.platform.security.api.SecurityAuditMode;
 import io.github.jho951.platform.security.api.SecurityDecision;
@@ -17,8 +17,8 @@ import org.mockito.ArgumentCaptor;
 class GovernanceSecurityAuditPublisherTest {
 
 	@Test
-	void publishesSecurityAuditEventToGovernanceAuditLog() {
-		AuditLogRecorder auditLogRecorder = mock(AuditLogRecorder.class);
+	void publishesSecurityAuditEventToGovernanceAuditRecorder() {
+		GovernanceAuditRecorder auditLogRecorder = mock(GovernanceAuditRecorder.class);
 		GovernanceSecurityAuditPublisher publisher = new GovernanceSecurityAuditPublisher(
 			auditLogRecorder,
 			SecurityAuditMode.ALL
